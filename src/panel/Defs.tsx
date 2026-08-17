@@ -80,6 +80,53 @@ export function Defs() {
         <stop offset="100%" stopColor="#26170c" stopOpacity="0.86" />
       </radialGradient>
 
+      {/*
+        Desktop module caps: one translucent moulding per switch, unlit barely above the plate and
+        lit across its whole face. The mesh is the diffuser grid visible through the plastic.
+      */}
+      <linearGradient id="capFaceDark" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%" stopColor="#26262c" />
+        <stop offset="45%" stopColor="#161619" />
+        <stop offset="100%" stopColor="#0b0b0e" />
+      </linearGradient>
+      <radialGradient id="capFaceLit" cx="42%" cy="38%" r="78%">
+        <stop offset="0%" stopColor="#ffd9c2" />
+        <stop offset="26%" stopColor="#ff7a45" />
+        <stop offset="70%" stopColor="#d32c12" />
+        <stop offset="100%" stopColor="#8e1a08" />
+      </radialGradient>
+      <pattern id="capMesh" width="7" height="7" patternUnits="userSpaceOnUse">
+        <path d="M0 0 H7 M0 0 V7" stroke="#000" strokeOpacity="0.34" strokeWidth="1.4" fill="none" />
+      </pattern>
+      <filter id="capGlow" x="-60%" y="-60%" width="220%" height="220%">
+        <feDropShadow dx="0" dy="0" stdDeviation="7" floodColor="#ff4a1e" floodOpacity="0.75" />
+      </filter>
+
+      {/* A coarser powder-coat for the desktop module's plate. */}
+      <filter id="plateTextureCoarse" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.34" numOctaves="4" seed="9" />
+        <feColorMatrix type="saturate" values="0" />
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.042" />
+        </feComponentTransfer>
+        <feComposite in2="SourceGraphic" operator="atop" />
+      </filter>
+
+      {/* Narrow cheeks miss the radial vignette almost entirely, so they get their own shading. */}
+      <linearGradient id="cheekShade" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#180d05" stopOpacity="0.85" />
+        <stop offset="42%" stopColor="#2a180c" stopOpacity="0.3" />
+        <stop offset="62%" stopColor="#2a180c" stopOpacity="0.32" />
+        <stop offset="100%" stopColor="#180d05" stopOpacity="0.88" />
+      </linearGradient>
+
+      {/* The amber half of a paired indicator. */}
+      <radialGradient id="ledAmber" cx="35%" cy="30%" r="85%">
+        <stop offset="0%" stopColor="#fff3cf" />
+        <stop offset="35%" stopColor="#f2b02c" />
+        <stop offset="100%" stopColor="#a86b06" />
+      </radialGradient>
+
       {/* Grey patch buttons and the red RECORD cap. */}
       <linearGradient id="capFaceGrey" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#b6b4ad" />

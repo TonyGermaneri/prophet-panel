@@ -4,22 +4,17 @@ import { BY_ID } from '../domain/parameters'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
 import { useBindings } from '../ui/useBindings'
-import { accessibleName, KNOB, type KnobLayout } from './layout'
+import { accessibleName, type KnobLayout } from './layout'
+import { useMetrics } from './metrics'
 
-const { radius: R, tickInner, tickOuter, numberRadius, sweep } = KNOB
-const HALF_SWEEP = sweep / 2
-
-/** Pointer travel, in panel units, for a full sweep of the control. */
+/** Pointer travel, as a fraction of the panel's width, for a full sweep of the control. */
 const DRAG_RANGE = 260
-const FINE_FACTOR = 0.2
-/** Measured off the reference sheet: legends sit 57 units below the knob centre. */
-const LABEL_OFFSET = 57
-/** Offset of the outermost scale numbers, which sit at ±135° — both coordinates are r/√2. */
-const EXTREME_TICK = KNOB.numberRadius * Math.SQRT1_2
 
-function angleFor(value: number, min: number, max: number): number {
+const FINE_FACTOR = 0.2
+
+function angleFor(value: number, min: number, max: number, sweep: number): number {
   const t = max === min ? 0 : (value - min) / (max - min)
-  return -HALF_SWEEP + t * sweep
+  return -sweep / 2 + t * sweep
 }
 
 function polar(angleDeg: number, r: number): [number, number] {
@@ -39,6 +34,10 @@ export function Knob({ spec }: { spec: KnobLayout }) {
   const { min, max } = controlRange(spec.param)
   const drag = useRef<{ y: number; value: number } | null>(null)
   const bind = useBindings()
+  const { knob } = useMetrics()
+  const { radius: R, tickInner, tickOuter, numberRadius, sweep, labelOffset } = knob
+  /** The outermost scale numbers sit at ±135°, so both coordinates are r/√2. */
+  const EXTREME_TICK = numberRadius * Math.SQRT1_2
 
   const commit = useCallback(
     (next: number) => {
@@ -60,7 +59,14 @@ export function Knob({ spec }: { spec: KnobLayout }) {
       bind.select(bind.selected === spec.param ? null : spec.param)
       return
     }
-    ;(e.target as Element).setPointerCapture(e.pointerId)
+    // Capture keeps events coming if the pointer leaves the knob mid-drag, but it is an
+    // optimisation, not a requirement — and it throws for a pointer the browser does not know
+    // about. Letting that propagate would abandon the drag before it had even started.
+    try {
+      ;(e.target as Element).setPointerCapture(e.pointerId)
+    } catch {
+      /* drag still works, it just ends if the pointer leaves the element */
+    }
     drag.current = { y: e.clientY, value }
   }
 
@@ -95,7 +101,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
     e.preventDefault()
   }
 
-  const angle = angleFor(value, min, max)
+  const angle = angleFor(value, min, max, sweep)
   const labels = tickLabels(spec)
   const name = accessibleName(BY_ID.get(spec.param)?.section, spec.label)
 
@@ -123,7 +129,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
       {/* Printed scale — static, drawn under the cap. */}
       <g className="knob-scale">
         {labels.map((text, i) => {
-          const a = -HALF_SWEEP + (i / (labels.length - 1)) * sweep
+          const a = -sweep / 2 + (i / (labels.length - 1)) * sweep
           const [x1, y1] = polar(a, tickInner)
           const [x2, y2] = polar(a, tickOuter)
           const [tx, ty] = polar(a, numberRadius)
@@ -210,7 +216,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
       <text
         className="knob-label"
         x={spec.labelDx ?? 0}
-        y={(spec.labelDy ?? 0) + (spec.labelDx ? 0 : LABEL_OFFSET)}
+        y={(spec.labelDy ?? 0) + (spec.labelDx ? 0 : labelOffset)}
         textAnchor={spec.labelDx ? 'start' : 'middle'}
       >
         {spec.label}

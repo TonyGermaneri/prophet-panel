@@ -1,4 +1,5 @@
 import { Defs } from './Defs'
+import { DesktopPanel } from './DesktopPanel'
 import { Keyboard } from './Keyboard'
 import { Knob } from './Knob'
 import { Logo } from './Logo'
@@ -6,7 +7,6 @@ import { Switch } from './Switch'
 import {
   BRACKETS,
   CHASSIS,
-  COMPACT,
   DISPLAY,
   KNOBS,
   PANEL,
@@ -94,10 +94,12 @@ function Wheel({ wheel }: { wheel: (typeof WHEELS)['pitch'] }) {
 }
 
 export function Panel({ compact = false }: { compact?: boolean }) {
-  // Hiding the keyboard crops the viewBox and the chassis rather than just hiding elements, so
-  // the panel scales up to fill the space instead of leaving a wide empty band.
-  const height = compact ? COMPACT.height : PANEL.height
-  const chassisHeight = compact ? COMPACT.chassisHeight : CHASSIS.h
+  // Without the keyboard this is a different instrument entirely — the desktop module, which has
+  // its own arrangement rather than the keyboard panel with its lower half cropped off.
+  if (compact) return <DesktopPanel />
+
+  const height = PANEL.height
+  const chassisHeight = CHASSIS.h
 
   return (
     <svg

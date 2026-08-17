@@ -13,8 +13,6 @@ import type { PanelAction } from '../state/actions'
 export const PANEL = { width: 2653, height: 1137 }
 export const CHASSIS = { x: 15, y: 34, w: 2618, h: 1085 }
 
-/** With the keyboard hidden the chassis stops just below the faceplate. */
-export const COMPACT = { height: 617, chassisHeight: 565 }
 export const PLATE = { x: 57, y: 74, w: 2534, h: 485 }
 
 /** Knob drawing metrics, measured off the sheet. */

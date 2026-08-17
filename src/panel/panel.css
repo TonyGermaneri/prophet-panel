@@ -390,3 +390,101 @@
 .knob.chrome .knob-knurl line {
   stroke: rgba(255, 255, 255, 0.3);
 }
+
+
+/* ---- Desktop module variant ---- */
+
+/*
+ * Its reference image is a larger drawing space than the keyboard sheet's, so identical px sizes
+ * would render smaller. Type is scaled by the ratio between the two so both read the same weight.
+ */
+.prophet-panel.desktop .section-title {
+  font-size: 19px;
+  letter-spacing: 2.4px;
+}
+.prophet-panel.desktop .bracket text {
+  font-size: 17px;
+  letter-spacing: 1.6px;
+}
+.prophet-panel.desktop .bracket line {
+  stroke-width: 3.4;
+}
+.prophet-panel.desktop .section rect {
+  stroke-width: 4;
+}
+.prophet-panel.desktop .knob-label {
+  font-size: 17px;
+  letter-spacing: 1.2px;
+}
+.prophet-panel.desktop .knob-scale text {
+  font-size: 16px;
+}
+.prophet-panel.desktop .knob-scale line {
+  stroke-width: 3;
+}
+.prophet-panel.desktop .knob-end-label {
+  font-size: 15px;
+}
+.prophet-panel.desktop .switch-label {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.prophet-panel.desktop .switch-led-label {
+  font-size: 13px;
+}
+.prophet-panel.desktop .shift-label text {
+  font-size: 13px;
+}
+.prophet-panel.desktop .switch-icon {
+  stroke-width: 3.2;
+}
+.prophet-panel.desktop .display text {
+  font-size: 46px;
+  letter-spacing: 8px;
+}
+.prophet-panel.desktop .display .display-legend {
+  font-size: 16px;
+}
+
+/* A coarser powder-coat than the keyboard instrument's smoother plate. */
+.prophet-panel.desktop .plate-texture {
+  filter: url(#plateTextureCoarse);
+}
+
+/* The logo is printed straight onto the plate, in the same white as the legends. */
+.nameplate.bare .nameplate-art {
+  color: var(--legend);
+}
+
+/*
+ * Illuminated caps: one translucent moulding filling the bezel. Unlit it is barely darker than
+ * the plate; lit, the whole face carries the colour and throws a glow past its edges.
+ */
+.prophet-panel.desktop .switch-cap-face {
+  fill: url(#capFaceDark);
+}
+.prophet-panel.desktop .switch-cap-mesh {
+  fill: url(#capMesh);
+  pointer-events: none;
+}
+.prophet-panel.desktop .switch.lit .switch-cap-face {
+  fill: url(#capFaceLit);
+  filter: url(#capGlow);
+}
+.prophet-panel.desktop .switch.lit .switch-cap-mesh {
+  opacity: 0.5;
+}
+.cheek-shade {
+  fill: url(#cheekShade);
+  pointer-events: none;
+}
+
+.prophet-panel.desktop .switch-bezel {
+  fill: #050506;
+  stroke: #24242a;
+}
+
+/* Amber, for the second of a pair of indicator lamps. */
+.led-body.amber {
+  fill: url(#ledAmber);
+}

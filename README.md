@@ -26,7 +26,9 @@ the dev server works without TLS.
 - **MIDI** — panel edits stream out as NRPN; hardware knob moves come back and move the on-screen
   control. Sysex handles whole-patch transfer. Port choices are remembered between sessions.
 - **Play from the computer keyboard** — `A`–`K` for white keys, `W`–`U` for sharps, `Z`/`X` to
-  shift octave and `C`/`V` velocity. **Hide keyboard** collapses the keys, wheels and nameplate.
+  shift octave and `C`/`V` velocity. The keyboard toggle switches between the keyboard instrument
+  and the **desktop module** — the same synth in different furniture, with its own arrangement,
+  illuminated caps and printed logo, drawn from its own reference photo.
 - **Input device** — pick a controller under the gear icon. Its notes, control changes, pitch bend
   and aftertouch are passed through to the Prophet on the synth's own channel, so you can play and
   automate the instrument through the app. The synth's own port is excluded from the list, since
@@ -132,12 +134,12 @@ loading and re-saving a patch is byte-identical.
 
 ```
 src/domain/      parameter table, sysex codec, patch model  (no browser APIs, fully tested)
-src/panel/       SVG faceplate: layout data + Knob/Switch/Keyboard
+src/panel/       SVG faceplates: layout data per variant + Knob/Switch/Keyboard
 src/midi/        Web MIDI transport, NRPN codec, store<->synth sync
 src/library/     IndexedDB store and the librarian UI
 src/state/       patch store and React bindings
 patches/factory/ the instrument's own 400 programs, one .syx per group
-reference/panel.jpg  the patch sheet the panel geometry is derived from
+reference/           the patch sheet and photo the two layouts are derived from
 ```
 
 Panel geometry is not hand-placed. Knob centres came from Hough circle detection over the reference
