@@ -10,8 +10,8 @@ import { registerActions } from './state/actions'
 import { notes } from './state/notes'
 import { settings } from './state/settings'
 import { store } from './state/store'
-import { AboutDialog } from './ui/AboutDialog'
 import { BindingsPanel } from './ui/BindingsPanel'
+import { ControlPanelDialog } from './ui/ControlPanelDialog'
 import { MonitorPanel } from './ui/MonitorPanel'
 import { Toolbar } from './ui/Toolbar'
 import { useBindings, useSettings } from './ui/useBindings'
@@ -27,7 +27,7 @@ function goTo(group: number, program: number): void {
 export function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [monitorOpen, setMonitorOpen] = useState(false)
-  const [aboutOpen, setAboutOpen] = useState(false)
+  const [controlPanelOpen, setControlPanelOpen] = useState(false)
   const prefs = useSettings()
   const bind = useBindings()
   const { octave, velocity } = useComputerKeyboard(true)
@@ -35,6 +35,15 @@ export function App() {
   useEffect(() => {
     sync.follow = settings.current.follow
     sync.start()
+
+    // Reconnect without being asked. Chrome remembers the sysex grant per origin, so once access
+    // has been given a reload can restore the connection silently; without the flag we would be
+    // firing a permission prompt at someone who has never opted in.
+    if (settings.current.hasConnected) {
+      void connection.connect().then((state) => {
+        if (state === 'ready') void connection.identify()
+      })
+    }
     monitor.attach(connection)
 
     // MIDI learn and binding playback listen to every input except the synth's own, so reaching
@@ -71,7 +80,7 @@ export function App() {
       <Toolbar
         onToggleLibrary={() => setLibraryOpen((v) => !v)}
         onToggleMonitor={() => setMonitorOpen((v) => !v)}
-        onShowAbout={() => setAboutOpen(true)}
+        onOpenControlPanel={() => setControlPanelOpen(true)}
       />
       <div className="body">
         <main className="stage">
@@ -85,7 +94,7 @@ export function App() {
         {monitorOpen && <MonitorPanel onClose={() => setMonitorOpen(false)} />}
         {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
       </div>
-      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {controlPanelOpen && <ControlPanelDialog onClose={() => setControlPanelOpen(false)} />}
     </div>
   )
 }

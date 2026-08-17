@@ -88,6 +88,7 @@ export class MidiConnection {
       this.channel = settings.current.channel
       this.listenToAllInputs()
       this.restoreOrAutoSelect()
+      settings.update({ hasConnected: true })
     } catch {
       this.state = 'denied'
     }

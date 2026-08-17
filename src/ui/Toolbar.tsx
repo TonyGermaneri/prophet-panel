@@ -1,51 +1,29 @@
-import { useState } from 'react'
-
 import { bankOf, programInBank } from '../domain/patch'
-import { connection, sync } from '../midi'
 import { usePatchMeta } from '../state/hooks'
 import { settings } from '../state/settings'
 import { store } from '../state/store'
+import { BookIcon, GearIcon, LinkIcon, PianoIcon } from './icons'
 import { useBindings, useSettings } from './useBindings'
 import { useMidiStatus } from './useMidi'
-
-const STATE_TEXT: Record<string, string> = {
-  idle: 'Not connected',
-  unsupported: 'Web MIDI unavailable — use Chrome or Edge',
-  denied: 'MIDI permission denied',
-  ready: 'Connected',
-}
 
 export function Toolbar({
   onToggleLibrary,
   onToggleMonitor,
-  onShowAbout,
+  onOpenControlPanel,
 }: {
   onToggleLibrary: () => void
   onToggleMonitor: () => void
-  onShowAbout: () => void
+  onOpenControlPanel: () => void
 }) {
   const midi = useMidiStatus()
   const meta = usePatchMeta()
   const prefs = useSettings()
   const bind = useBindings()
-  const [busy, setBusy] = useState(false)
-
-  const connect = async () => {
-    setBusy(true)
-    const state = await connection.connect()
-    if (state === 'ready') await connection.identify()
-    setBusy(false)
-  }
 
   const ready = midi.state === 'ready'
 
   return (
     <header className="toolbar">
-      <div className="toolbar-group brand">
-        <span className="brand-mark">prophet~10</span>
-        <span className="brand-sub">control panel</span>
-      </div>
-
       <div className="toolbar-group patch-id">
         <span className="slot">
           {meta.group + 1}
@@ -62,87 +40,82 @@ export function Toolbar({
         />
       </div>
 
-      <div className="toolbar-group">
-        {!ready ? (
-          <button
-            className="primary"
-            onClick={connect}
-            disabled={busy || midi.state === 'unsupported'}
-          >
-            {busy ? 'Connecting…' : 'Connect MIDI'}
-          </button>
-        ) : (
-          <>
-            <select
-              value={midi.inputId ?? ''}
-              onChange={(e) => connection.setInput(e.target.value || null)}
-              aria-label="MIDI input"
-            >
-              <option value="">— input —</option>
-              {midi.inputs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={midi.outputId ?? ''}
-              onChange={(e) => connection.setOutput(e.target.value || null)}
-              aria-label="MIDI output"
-            >
-              <option value="">— output —</option>
-              {midi.outputs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <button onClick={() => connection.identify()}>Identify</button>
-            <button onClick={() => sync.requestEditBuffer()}>Sync from synth</button>
-            <button onClick={() => sync.sendEditBuffer()}>Send to synth</button>
-            <label className="toggle" title="Pull the synth's edit buffer when its program changes">
-              <input
-                type="checkbox"
-                checked={prefs.follow}
-                onChange={(e) => {
-                  sync.follow = e.target.checked
-                  settings.update({ follow: e.target.checked })
-                }}
-              />
-              Follow synth
-            </label>
-          </>
-        )}
-      </div>
-
-      <div className="toolbar-group status">
-        <span className={`dot ${ready ? 'on' : ''}`} />
-        <span>
-          {midi.device
-            ? `${midi.device.model} · OS ${midi.device.version} · ID 0x${midi.deviceId.toString(16)}`
-            : STATE_TEXT[midi.state]}
-        </span>
-      </div>
-
-      <div className="toolbar-group">
-        <label className="toggle" title="Hide the keyboard, wheels and nameplate">
-          <input
-            type="checkbox"
-            checked={prefs.hideKeyboard}
-            onChange={(e) => settings.update({ hideKeyboard: e.target.checked })}
-          />
-          Hide keyboard
-        </label>
+      <div className="toolbar-group toolbar-icons">
+        {/* Connection state is the one thing worth seeing without opening anything; clicking it
+            goes straight to where it can be changed. */}
         <button
-          className={bind.active ? 'primary' : undefined}
+          className="icon-button status-button"
+          onClick={onOpenControlPanel}
+          title={
+            midi.device
+              ? `${midi.device.model} · OS ${midi.device.version}`
+              : ready
+                ? 'MIDI connected'
+                : 'MIDI not connected'
+          }
+        >
+          <span className={`dot ${ready ? 'on' : ''}`} />
+        </button>
+
+        <button
+          className={prefs.hideKeyboard ? 'icon-button' : 'icon-button active'}
+          onClick={() => settings.update({ hideKeyboard: !prefs.hideKeyboard })}
+          aria-pressed={!prefs.hideKeyboard}
+          title={prefs.hideKeyboard ? 'Show keyboard' : 'Hide keyboard'}
+          aria-label={prefs.hideKeyboard ? 'Show keyboard' : 'Hide keyboard'}
+        >
+          <PianoIcon />
+        </button>
+
+        <button
+          className={bind.active ? 'icon-button active' : 'icon-button'}
           onClick={() => bind.setActive(!bind.active)}
           aria-pressed={bind.active}
+          title="MIDI Bind — learn a controller to a panel control"
+          aria-label="MIDI Bind"
         >
-          MIDI Bind
+          <LinkIcon />
         </button>
-        <button onClick={onToggleMonitor}>Monitor</button>
-        <button onClick={onToggleLibrary}>Library</button>
-        <button onClick={onShowAbout}>About</button>
+
+        <button
+          className="icon-button"
+          onClick={onToggleLibrary}
+          title="Patch library"
+          aria-label="Patch library"
+        >
+          <BookIcon />
+        </button>
+
+        <button
+          className="icon-button"
+          onClick={onToggleMonitor}
+          title="MIDI monitor"
+          aria-label="MIDI monitor"
+        >
+          {/* A monitor shows traffic, so the glyph is a trace. */}
+          <svg
+            className="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            focusable={false}
+          >
+            <path d="M3 15.5h3l2.2-7 2.6 10 2.4-8.5 1.8 5.5H21" />
+          </svg>
+        </button>
+
+        <button
+          className="icon-button"
+          onClick={onOpenControlPanel}
+          title="Control panel"
+          aria-label="Control panel"
+        >
+          <GearIcon />
+        </button>
       </div>
     </header>
   )

@@ -59,18 +59,6 @@
   gap: 8px;
 }
 
-.brand-mark {
-  font-family: Georgia, serif;
-  font-style: italic;
-  font-size: 19px;
-  color: #e8e4d8;
-}
-.brand-sub {
-  font-size: 11px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: #6f7580;
-}
 
 .patch-id {
   gap: 10px;
@@ -100,7 +88,6 @@
   text-transform: uppercase;
 }
 
-.toolbar button,
 .library button,
 .monitor button {
   background: linear-gradient(#33373f, #24272d);
@@ -111,38 +98,17 @@
   font-size: 12px;
   padding: 6px 11px;
 }
-.toolbar button:hover:not(:disabled),
 .library button:hover:not(:disabled),
 .monitor button:hover:not(:disabled) {
   background: linear-gradient(#3d424b, #2b2f36);
 }
-.toolbar button:disabled,
 .library button:disabled,
 .monitor button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.toolbar button.primary {
-  background: linear-gradient(#a8492c, #7d3420);
-  border-color: #c25a38;
-  color: #fff3ec;
-}
 
-.toolbar select {
-  background: #14171b;
-  border: 1px solid #343943;
-  border-radius: 5px;
-  color: #cfcbc2;
-  font-size: 12px;
-  max-width: 190px;
-  padding: 5px 7px;
-}
 
-.status {
-  color: #8b929d;
-  font-size: 12px;
-  margin-left: auto;
-}
 .dot {
   width: 9px;
   height: 9px;
@@ -384,20 +350,6 @@ button.entry {
   text-align: right;
 }
 
-.toolbar .toggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #9aa1ac;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-.toolbar .toggle input {
-  accent-color: #c25a38;
-  cursor: pointer;
-  margin: 0;
-}
 
 /* ---- MIDI bindings ---- */
 
@@ -562,12 +514,58 @@ button.entry {
   padding: 1px 4px;
 }
 
-/* ---- About ---- */
+/* ---- Header icon buttons ---- */
 
-.about-backdrop {
+.toolbar-icons {
+  margin-left: auto;
+  gap: 4px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #8b929d;
+  cursor: pointer;
+}
+.icon-button:hover {
+  background: #2a2e35;
+  color: #e4e0d6;
+}
+/* Toggles that are currently on read as lit rather than merely hovered. */
+.icon-button.active {
+  background: #33241b;
+  border-color: #7d4a2e;
+  color: #e2905e;
+}
+.icon-button .icon {
+  width: 19px;
+  height: 19px;
+}
+.icon-button:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
+}
+
+.status-button {
+  width: 26px;
+}
+.status-button:hover {
+  background: #2a2e35;
+}
+
+/* ---- Modals ---- */
+
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(6, 7, 9, 0.72);
+  background: rgba(6, 7, 9, 0.74);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -575,49 +573,160 @@ button.entry {
   padding: 24px;
 }
 
-.about {
-  position: relative;
-  width: min(440px, 100%);
+.modal {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(#1e2025, #15171b);
   border: 1px solid #33373f;
   border-radius: 10px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
-  padding: 26px 28px 22px;
   outline: none;
 }
-.about h2 {
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #262a31;
+}
+.modal-head h2 {
   margin: 0;
-  font-size: 17px;
-  color: #e8e4d8;
-  letter-spacing: 0.3px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #9aa1ac;
 }
-.about .byline {
-  margin: 4px 0 0;
-  color: #b8724a;
-  font-size: 13px;
-}
-.about-blurb {
-  color: #8b929d;
-  font-size: 12.5px;
-  line-height: 1.6;
-  margin: 14px 0 18px;
-}
-.about-close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
+.modal-close {
   background: none;
   border: none;
   color: #6f7580;
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 0 4px;
 }
-.about-close:hover {
+.modal-close:hover {
   color: #d3cfc5;
 }
-.about-links {
+.modal-body {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 4px 18px 18px;
+}
+
+.dialog-section {
+  padding-top: 16px;
+}
+.dialog-section + .dialog-section {
+  margin-top: 4px;
+  border-top: 1px solid #23262c;
+}
+.dialog-section h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #7f868f;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #8b929d;
+  font-size: 12px;
+}
+.status-line.ok {
+  color: #86d3a3;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+  font-size: 12px;
+  color: #9aa1ac;
+}
+.field > span {
+  width: 52px;
+  flex: 0 0 52px;
+}
+.field select {
+  flex: 1;
+  min-width: 0;
+  background: #14171b;
+  border: 1px solid #343943;
+  border-radius: 5px;
+  color: #cfcbc2;
+  font-size: 12px;
+  padding: 6px 7px;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.modal button {
+  background: linear-gradient(#33373f, #24272d);
+  border: 1px solid #454a54;
+  border-radius: 5px;
+  color: #dcd8ce;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 11px;
+}
+.modal button:hover:not(:disabled) {
+  background: linear-gradient(#3d424b, #2b2f36);
+}
+.modal button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.modal button.primary {
+  background: linear-gradient(#a8492c, #7d3420);
+  border-color: #c25a38;
+  color: #fff3ec;
+}
+.modal button.modal-close {
+  background: none;
+  border: none;
+  padding: 0 4px;
+}
+
+.modal .toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #9aa1ac;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.modal .toggle input {
+  accent-color: #c25a38;
+  cursor: pointer;
+  margin: 2px 0 0;
+}
+
+.byline {
+  margin: 0;
+  color: #b8724a;
+  font-size: 13px;
+}
+.dialog-blurb {
+  color: #8b929d;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 8px 0 14px;
+}
+.dialog-links {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -625,21 +734,21 @@ button.entry {
   flex-direction: column;
   gap: 12px;
 }
-.about-links li {
+.dialog-links li {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.about-links a {
+.dialog-links a {
   color: #7fb2e8;
   font-size: 13px;
   text-decoration: none;
   word-break: break-word;
 }
-.about-links a:hover {
+.dialog-links a:hover {
   text-decoration: underline;
 }
-.about-links span {
+.dialog-links span {
   color: #5c626b;
   font-size: 11px;
 }

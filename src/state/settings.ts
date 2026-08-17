@@ -15,6 +15,12 @@ export interface Settings {
   channel: number
   follow: boolean
   hideKeyboard: boolean
+  /**
+   * Set once a connection has actually been established. Remembering the port ids is not enough
+   * to reconnect on load: this records that the user has already granted MIDI access, which is
+   * what makes an automatic reconnect silent rather than a surprise permission prompt.
+   */
+  hasConnected: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -25,6 +31,7 @@ const DEFAULTS: Settings = {
   channel: 0,
   follow: true,
   hideKeyboard: false,
+  hasConnected: false,
 }
 
 function read(): Settings {
