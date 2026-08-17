@@ -13,7 +13,7 @@ import { KNOB, KNOBS, PLATE, SECTIONS, SWITCH, SWITCHES } from '../layout'
 import {
   DESKTOP_KNOBS,
   DESKTOP_KNOB,
-  DESKTOP_PLATE,
+  DESKTOP_CASE,
   DESKTOP_SECTIONS,
   DESKTOP_SWITCH,
   DESKTOP_SWITCHES,
@@ -51,7 +51,7 @@ const VARIANTS = [
     sections: DESKTOP_SECTIONS,
     knobs: DESKTOP_KNOBS,
     switches: DESKTOP_SWITCHES,
-    plate: DESKTOP_PLATE,
+    plate: DESKTOP_CASE,
     knob: DESKTOP_KNOB,
     switchW: DESKTOP_SWITCH.w,
     minGap: 20,

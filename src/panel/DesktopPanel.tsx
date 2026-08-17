@@ -4,16 +4,16 @@ import { Defs } from './Defs'
 import { Knob } from './Knob'
 import { Logo } from './Logo'
 import { Switch } from './Switch'
+import { rectProps } from './layout'
 import { DESKTOP_METRICS, MetricsProvider } from './metrics'
 import {
   DESKTOP_BRACKETS,
-  DESKTOP_CHASSIS,
+  DESKTOP_CASE,
   DESKTOP_CHEEKS,
   DESKTOP_DISPLAY,
   DESKTOP_KNOBS,
   DESKTOP_LOGO,
   DESKTOP_PANEL,
-  DESKTOP_PLATE,
   DESKTOP_SECTIONS,
   DESKTOP_SHIFT_LABELS,
   DESKTOP_SHIFT_LABEL_Y,
@@ -105,41 +105,24 @@ export function DesktopPanel() {
       >
         <Defs />
 
-        <rect
-          className="chassis"
-          x={DESKTOP_CHASSIS.x}
-          y={DESKTOP_CHASSIS.y}
-          width={DESKTOP_CHASSIS.w}
-          height={DESKTOP_CHASSIS.h}
-          rx={10}
-        />
+        {/* The metal case, closing its own top and bottom. */}
+        <rect className="case" {...rectProps(DESKTOP_CASE)} rx={5} />
+        <rect className="plate-texture" {...rectProps(DESKTOP_CASE)} rx={5} />
+        <rect className="case-wrap" {...rectProps(DESKTOP_CASE)} rx={5} />
 
-        {/* Wood only at the ends, so the grain is drawn per cheek rather than across the whole box. */}
+        {/*
+          Cheeks last and drawn over the case ends, since they stand proud of the metal. The grain
+          is drawn per cheek rather than across one wide box, or a narrow strip would show almost no
+          variation at all.
+        */}
         {DESKTOP_CHEEKS.map((cheek, i) => (
           <g key={i}>
-            <rect className="chassis" {...cheek} rx={6} />
-            <rect className="chassis-grain-a" {...cheek} rx={6} />
-            <rect className="chassis-grain-b" {...cheek} rx={6} />
-            <rect className="cheek-shade" {...cheek} rx={6} />
+            <rect className="chassis" {...rectProps(cheek)} rx={7} />
+            <rect className="cheek-grain-a" {...rectProps(cheek)} rx={7} />
+            <rect className="cheek-grain-b" {...rectProps(cheek)} rx={7} />
+            <rect className="cheek-shade" {...rectProps(cheek)} rx={7} />
           </g>
         ))}
-
-        <rect
-          className="plate"
-          x={DESKTOP_PLATE.x}
-          y={DESKTOP_PLATE.y}
-          width={DESKTOP_PLATE.w}
-          height={DESKTOP_PLATE.h}
-          rx={4}
-        />
-        <rect
-          className="plate-texture"
-          x={DESKTOP_PLATE.x}
-          y={DESKTOP_PLATE.y}
-          width={DESKTOP_PLATE.w}
-          height={DESKTOP_PLATE.h}
-          rx={4}
-        />
 
         {DESKTOP_SECTIONS.map((s) => (
           <SectionFrame key={s.id} title={s.title} box={s.box} />

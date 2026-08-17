@@ -112,6 +112,43 @@ export function Defs() {
         <feComposite in2="SourceGraphic" operator="atop" />
       </filter>
 
+      {/*
+        Cheek grain runs up the block, not along it — these are short end blocks bolted to the case,
+        so the same figure as the keyboard cabinet with its axes swapped.
+      */}
+      <filter id="grainCheekA" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.055 0.0035" numOctaves="2" seed="11" />
+        <feColorMatrix
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  4.6 0 0 0 -1.95"
+          result="mask"
+        />
+        <feFlood floodColor="#7d564c" result="ink" />
+        <feComposite in="ink" in2="mask" operator="in" />
+      </filter>
+      <filter id="grainCheekB" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.115 0.008" numOctaves="2" seed="29" />
+        <feColorMatrix
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  5.2 0 0 0 -2.7"
+          result="mask"
+        />
+        <feFlood floodColor="#814e3d" result="ink" />
+        <feComposite in="ink" in2="mask" operator="in" />
+      </filter>
+
+      {/* Highlight along the case's rolled top and bottom, shading into the flat middle. */}
+      <linearGradient id="caseWrap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#6d6d76" stopOpacity="0.5" />
+        <stop offset="1.4%" stopColor="#3a3a41" stopOpacity="0.28" />
+        <stop offset="4%" stopColor="#000000" stopOpacity="0.16" />
+        <stop offset="12%" stopColor="#000000" stopOpacity="0" />
+        <stop offset="88%" stopColor="#000000" stopOpacity="0" />
+        <stop offset="96.5%" stopColor="#000000" stopOpacity="0.22" />
+        <stop offset="99%" stopColor="#5a5a63" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#8a8a93" stopOpacity="0.42" />
+      </linearGradient>
+
       {/* Narrow cheeks miss the radial vignette almost entirely, so they get their own shading. */}
       <linearGradient id="cheekShade" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor="#180d05" stopOpacity="0.85" />

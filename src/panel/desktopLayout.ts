@@ -15,14 +15,18 @@
 import type { BracketLayout, Box, KnobLayout, SectionLayout, SwitchLayout } from './layout'
 import type { PanelAction } from '../state/actions'
 
-export const DESKTOP_PANEL = { width: 3410, height: 1210 }
-export const DESKTOP_CHASSIS: Box = { x: 20, y: 17, w: 3372, h: 1160 }
-export const DESKTOP_PLATE: Box = { x: 96, y: 22, w: 3217, h: 1150 }
+export const DESKTOP_PANEL = { width: 3410, height: 1232 }
 
-/** Wood survives only as the two end cheeks. */
+/**
+ * The case is a metal wrap: it carries the controls and closes the top and bottom itself, so no
+ * wood shows along either edge. The cheeks are separate blocks bolted to the ends, and they stand
+ * proud of the metal — a little above it and noticeably below, forming feet.
+ */
+export const DESKTOP_CASE: Box = { x: 94, y: 21, w: 3223, h: 1154 }
+
 export const DESKTOP_CHEEKS: Box[] = [
-  { x: 22, y: 17, w: 74, h: 1160 },
-  { x: 3313, y: 17, w: 74, h: 1160 },
+  { x: 20, y: 14, w: 76, h: 1198 },
+  { x: 3311, y: 14, w: 76, h: 1198 },
 ]
 
 /** Printed straight onto the plate, with no metal nameplate behind it. */

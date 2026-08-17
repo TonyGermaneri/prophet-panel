@@ -35,6 +35,12 @@ export interface Box {
   h: number
 }
 
+/**
+ * Box -> <rect> attributes. Spreading a Box straight onto a rect passes `w`/`h`, which SVG ignores
+ * silently: the element renders at zero size and simply is not there. Always go through this.
+ */
+export const rectProps = (b: Box) => ({ x: b.x, y: b.y, width: b.w, height: b.h })
+
 export interface SectionLayout {
   id: string
   title: string

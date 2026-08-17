@@ -474,6 +474,26 @@
 .prophet-panel.desktop .switch.lit .switch-cap-mesh {
   opacity: 0.5;
 }
+/* The desktop module's case is painted metal, not a plate laid onto wood. */
+.case {
+  fill: url(#plate);
+}
+/* Rolled top and bottom edges catching the light, which is what reads as a wrap. */
+.case-wrap {
+  fill: url(#caseWrap);
+  pointer-events: none;
+}
+
+.cheek-grain-a {
+  fill: #000;
+  filter: url(#grainCheekA);
+}
+.cheek-grain-b {
+  fill: #000;
+  filter: url(#grainCheekB);
+  opacity: 0.9;
+}
+
 .cheek-shade {
   fill: url(#cheekShade);
   pointer-events: none;
