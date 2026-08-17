@@ -3,18 +3,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseSyxFile, slotLabel, toSyxFile } from '../domain/patch'
 import { connection, sync } from '../midi'
 import { store } from '../state/store'
-import {
-  allEntries,
-  deleteEntry,
-  entryFromPatch,
-  type LibraryEntry,
-  patchFromEntry,
-  putEntries,
-} from './db'
-import { seedFactoryPatches } from './factory'
+import { useLibrary } from '../ui/useLibrary'
+import { auditionEntry } from './actions'
+import { deleteEntry, entryFromPatch, type LibraryEntry, patchFromEntry, putEntries } from './db'
+import { library } from './libraryStore'
 
 function download(name: string, bytes: Uint8Array): void {
-  const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: 'application/octet-stream' }))
+  const url = URL.createObjectURL(
+    new Blob([bytes.slice().buffer], { type: 'application/octet-stream' }),
+  )
   const a = document.createElement('a')
   a.href = url
   a.download = name
@@ -23,28 +20,30 @@ function download(name: string, bytes: Uint8Array): void {
 }
 
 export function LibraryPanel({ onClose }: { onClose: () => void }) {
-  const [entries, setEntries] = useState<LibraryEntry[]>([])
+  const lib = useLibrary()
   const [filter, setFilter] = useState('')
-  const [selected, setSelected] = useState<string | null>(null)
   const [progress, setProgress] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const refresh = async () => setEntries(await allEntries())
-
-  useEffect(() => {
-    void (async () => {
-      await seedFactoryPatches()
-      await refresh()
-    })()
-  }, [])
-
-  const banks = useMemo(() => {
+  const matching = useMemo(() => {
     const needle = filter.trim().toLowerCase()
-    const matching = needle
-      ? entries.filter(
+    const all = lib.all.sort(
+      (a, b) => a.bank.localeCompare(b.bank) || a.group - b.group || a.program - b.program,
+    )
+    return needle
+      ? all.filter(
           (e) => e.name.toLowerCase().includes(needle) || e.bank.toLowerCase().includes(needle),
         )
-      : entries
+      : all
+    // The revision covers content changes; `all` is derived from it.
+  }, [lib.revision, filter])
+
+  // Keep the header's stepper walking exactly what is on screen, filter included.
+  useEffect(() => {
+    library.setOrder(matching.map((e) => e.id))
+  }, [matching])
+
+  const banks = useMemo(() => {
     const grouped = new Map<string, LibraryEntry[]>()
     for (const entry of matching) {
       const list = grouped.get(entry.bank) ?? []
@@ -52,23 +51,11 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
       grouped.set(entry.bank, list)
     }
     return [...grouped.entries()]
-  }, [entries, filter])
-
-  /**
-   * Selecting a patch does both halves at once: the panel takes the patch, and the synth gets it
-   * in its edit buffer so you hear what you are looking at.
-   */
-  const audition = (entry: LibraryEntry) => {
-    const patch = patchFromEntry(entry)
-    setSelected(entry.id)
-    store.loadPatch(patch)
-    store.setSlot(entry.group, entry.program)
-    sync.sendEditBuffer(patch)
-  }
+  }, [matching])
 
   const saveCurrent = async () => {
     await putEntries([entryFromPatch(store.snapshot(), 'My Patches', 'user')])
-    await refresh()
+    await library.refresh()
   }
 
   const importFiles = async (files: FileList | null) => {
@@ -76,20 +63,15 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     const added: LibraryEntry[] = []
     for (const file of files) {
       const bytes = new Uint8Array(await file.arrayBuffer())
-      const patches = parseSyxFile(bytes)
       const bank = file.name.replace(/\.syx$/i, '')
-      for (const patch of patches) added.push(entryFromPatch(patch, bank, 'import'))
+      for (const patch of parseSyxFile(bytes)) added.push(entryFromPatch(patch, bank, 'import'))
     }
     if (added.length) {
       await putEntries(added)
-      await refresh()
+      await library.refresh()
     }
     setProgress(added.length ? `Imported ${added.length} patches` : 'No patches found in file')
     window.setTimeout(() => setProgress(null), 2500)
-  }
-
-  const exportBank = (bank: string, list: LibraryEntry[]) => {
-    download(`${bank}.syx`, toSyxFile(list.map(patchFromEntry), connection.deviceId))
   }
 
   const fetchFromSynth = async () => {
@@ -102,7 +84,7 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     )
     if (added.length) {
       await putEntries(added)
-      await refresh()
+      await library.refresh()
     }
     setProgress(added.length ? `Fetched ${added.length} patches` : 'No response from synth')
     window.setTimeout(() => setProgress(null), 3000)
@@ -151,17 +133,22 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
             <header>
               <h3>{bank}</h3>
               <span className="count">{list.length}</span>
-              <button className="link" onClick={() => exportBank(bank, list)}>
+              <button
+                className="link"
+                onClick={() =>
+                  download(`${bank}.syx`, toSyxFile(list.map(patchFromEntry), connection.deviceId))
+                }
+              >
                 Export
               </button>
             </header>
             <ul>
               {list.map((entry) => (
-                <li key={entry.id} className={entry.id === selected ? 'selected' : undefined}>
+                <li key={entry.id} className={entry.id === lib.selectedId ? 'selected' : undefined}>
                   <button
                     className="entry"
                     title="Load onto the panel and send to the synth"
-                    onClick={() => audition(entry)}
+                    onClick={() => auditionEntry(entry)}
                   >
                     <span className="entry-slot">{slotLabel(entry.group, entry.program)}</span>
                     <span className="entry-name">{entry.name}</span>
@@ -169,7 +156,7 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
                   <button
                     className="link"
                     title="Send again, e.g. after editing on the panel"
-                    onClick={() => audition(entry)}
+                    onClick={() => auditionEntry(entry)}
                   >
                     Resend
                   </button>
@@ -189,7 +176,7 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
                       className="link danger"
                       onClick={async () => {
                         await deleteEntry(entry.id)
-                        await refresh()
+                        await library.refresh()
                       }}
                     >
                       Delete

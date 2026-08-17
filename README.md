@@ -18,7 +18,9 @@ the dev server works without TLS.
   fine, double-click to reset, arrow keys when focused); click a cap to advance it.
 - **Library** — patches in IndexedDB, seeded on first run with the 120 Rev3.3 factory sounds.
   Import and export `.syx`, save the current panel state, send a patch to the synth, or pull
-  programs off the instrument.
+  programs off the instrument. The `−`/`+` buttons beside the patch number step through the
+  library — not the instrument's own program memory — and follow the search filter when one is
+  active, so stepping stays inside what the panel is showing.
 - **MIDI** — panel edits stream out as NRPN; hardware knob moves come back and move the on-screen
   control. Sysex handles whole-patch transfer. Port choices are remembered between sessions.
 - **Play from the computer keyboard** — `A`–`K` for white keys, `W`–`U` for sharps, `Z`/`X` to

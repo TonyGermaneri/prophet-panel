@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { bankOf } from './domain/patch'
 import { LibraryPanel } from './library/LibraryPanel'
+import { library } from './library/libraryStore'
 import { connection, sync } from './midi'
 import { bindings } from './midi/bindings'
 import { monitor } from './midi/monitor'
@@ -35,6 +36,10 @@ export function App() {
   useEffect(() => {
     sync.follow = settings.current.follow
     sync.start()
+
+    // Seed and load at startup rather than when the library panel first opens, because the
+    // header's patch stepper walks the same list and the panel is usually not mounted.
+    void library.init()
 
     // Reconnect without being asked. Chrome remembers the sysex grant per origin, so once access
     // has been given a reload can restore the connection silently; without the flag we would be

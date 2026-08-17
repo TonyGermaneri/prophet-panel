@@ -1,9 +1,11 @@
 import { bankOf, programInBank } from '../domain/patch'
+import { stepPatch } from '../library/actions'
 import { usePatchMeta } from '../state/hooks'
 import { settings } from '../state/settings'
 import { store } from '../state/store'
 import { BookIcon, GearIcon, LinkIcon, PianoIcon } from './icons'
 import { useBindings, useSettings } from './useBindings'
+import { useLibrary } from './useLibrary'
 import { useMidiStatus } from './useMidi'
 
 export function Toolbar({
@@ -19,17 +21,37 @@ export function Toolbar({
   const meta = usePatchMeta()
   const prefs = useSettings()
   const bind = useBindings()
+  const library = useLibrary()
 
   const ready = midi.state === 'ready'
 
   return (
     <header className="toolbar">
       <div className="toolbar-group patch-id">
+        {/* Steps through the library, not the instrument's own program memory. */}
+        <button
+          className="stepper"
+          onClick={() => stepPatch(-1)}
+          disabled={!library.canStep(-1)}
+          title="Previous patch in the library"
+          aria-label="Previous patch in the library"
+        >
+          −
+        </button>
         <span className="slot">
           {meta.group + 1}
           {bankOf(meta.program)}
           {programInBank(meta.program)}
         </span>
+        <button
+          className="stepper"
+          onClick={() => stepPatch(1)}
+          disabled={!library.canStep(1)}
+          title="Next patch in the library"
+          aria-label="Next patch in the library"
+        >
+          +
+        </button>
         <input
           className="patch-name"
           value={meta.name}

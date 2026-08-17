@@ -758,3 +758,30 @@ button.entry {
   border-color: #6b2f22;
   color: #e5a08c;
 }
+
+.patch-id {
+  gap: 6px;
+}
+.stepper {
+  width: 24px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(#33373f, #24272d);
+  border: 1px solid #454a54;
+  border-radius: 5px;
+  color: #cfcbc2;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.stepper:hover:not(:disabled) {
+  background: linear-gradient(#3d424b, #2b2f36);
+  color: #f0ece2;
+}
+.stepper:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
