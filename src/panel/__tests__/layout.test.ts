@@ -22,8 +22,10 @@ function overlaps(a: Rect, b: Rect): boolean {
   return a.x < right(b) && right(a) > b.x && a.y < bottom(b) && bottom(a) > b.y
 }
 
-/** Minimum clear space between neighbouring frames, in panel units (~5 screen px when rendered). */
-const MIN_GAP = 8
+/** Clear space between neighbouring frames, matched in both directions. */
+const MIN_GAP = 22
+/** Clearance the printed scale must keep from the frame it sits in. */
+const MIN_SCALE_CLEARANCE = 8
 
 describe('section frames', () => {
   it('never overlap one another', () => {
@@ -89,12 +91,21 @@ describe('control legends stay within their frame', () => {
     }
   })
 
-  it('knob scales do not overhang their frame', () => {
+  it('knob scales keep clear of their frame on every side', () => {
+    // The topmost scale number sits a full numberRadius above the control centre, which is the
+    // tightest point on the panel — this is what forces the frames to be taller than the sheet's.
+    const GLYPH = 6
     for (const knob of KNOBS) {
       const frame = frameFor(knob.x, knob.y)
       if (!frame) continue // free-standing controls have no frame
-      expect(knob.x - KNOB.numberRadius, knob.param).toBeGreaterThan(frame.box.x)
-      expect(knob.x + KNOB.numberRadius, knob.param).toBeLessThan(right(frame.box))
+      const clearance = {
+        left: knob.x - KNOB.numberRadius - GLYPH / 2 - frame.box.x,
+        right: right(frame.box) - (knob.x + KNOB.numberRadius + GLYPH / 2),
+        top: knob.y - KNOB.numberRadius - GLYPH - frame.box.y,
+      }
+      for (const [side, value] of Object.entries(clearance)) {
+        expect(value, `${knob.param} ${side}`).toBeGreaterThanOrEqual(MIN_SCALE_CLEARANCE)
+      }
     }
   })
 

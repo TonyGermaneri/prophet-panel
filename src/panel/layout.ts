@@ -120,16 +120,20 @@ const SECTION_PAD_X = 10
 
 /** Clear space between neighbouring section frames, in both directions. */
 const GROUP_GAP = 22
-/** Frame height, and how far its top sits above the row's control centres. */
-const BOX_H = 131
-const BOX_RISE = 61
+/**
+ * Frame height, and how far its top sits above the row's control centres. The rise carries more
+ * clearance than the sheet's outline: the topmost scale number sits a full knob radius above the
+ * control centre, so a tighter frame crowds it against the rule.
+ */
+const BOX_H = 137
+const BOX_RISE = 67
 
 /**
  * Control rows. The patch sheet packs the rows only ~8 units apart, but on the instrument the gap
  * between stacked sections matches the gap between sections across, so the rows are derived from
  * GROUP_GAP and the whole block is centred on the faceplate rather than taken from the sheet.
  */
-const ROW1 = 159
+const ROW1 = 156
 const ROW2 = ROW1 + BOX_H + GROUP_GAP
 const ROW3 = ROW2 + BOX_H + GROUP_GAP
 
@@ -366,7 +370,7 @@ export function controlDisplayName(id: string): string {
 }
 
 /** The bracketed group legends printed under runs of controls. */
-const BRACKET_DROP = 61
+const BRACKET_DROP = BOX_H - BOX_RISE - 9
 
 export const BRACKETS: BracketLayout[] = [
   { x1: 88, x2: 320, y: ROW1 + BRACKET_DROP, text: 'SOURCE AMOUNT' },
