@@ -1,31 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { parseSyxFile, slotLabel, toSyxFile } from '../domain/patch'
-import { connection, sync } from '../midi'
-import { store } from '../state/store'
+import { slotLabel } from '../domain/patch'
+import { settings } from '../state/settings'
+import { useSettings } from '../ui/useBindings'
 import { useLibrary } from '../ui/useLibrary'
 import { auditionEntry } from './actions'
-import { deleteEntry, entryFromPatch, type LibraryEntry, patchFromEntry, putEntries } from './db'
+import { deleteEntry, type LibraryEntry } from './db'
 import { library } from './libraryStore'
 
-function download(name: string, bytes: Uint8Array): void {
-  const url = URL.createObjectURL(
-    new Blob([bytes.slice().buffer], { type: 'application/octet-stream' }),
+/** Docking the library beside the panel, or as a strip beneath the header. */
+function DockIcon({ dock }: { dock: 'header' | 'aside' }) {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinejoin="round"
+      aria-hidden
+      focusable={false}
+    >
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      {dock === 'header' ? (
+        <line x1="3.5" y1="10" x2="20.5" y2="10" />
+      ) : (
+        <line x1="14" y1="4.5" x2="14" y2="19.5" />
+      )}
+    </svg>
   )
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 export function LibraryPanel({ onClose }: { onClose: () => void }) {
   const lib = useLibrary()
+  const prefs = useSettings()
   const [filter, setFilter] = useState('')
-  const [progress, setProgress] = useState<string | null>(null)
-  const [receiving, setReceiving] = useState(false)
-  const received = useRef(new Map<string, LibraryEntry>())
-  const fileInput = useRef<HTMLInputElement>(null)
 
   const matching = useMemo(() => {
     const needle = filter.trim().toLowerCase()
@@ -48,7 +57,8 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     library.setOrder(matching.map((e) => e.id))
   }, [matching])
 
-  const banks = useMemo(() => {
+  /** One block per bank, so each block lays out as that group's five banks of eight. */
+  const blocks = useMemo(() => {
     const grouped = new Map<string, LibraryEntry[]>()
     for (const entry of matching) {
       const list = grouped.get(entry.bank) ?? []
@@ -58,148 +68,66 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     return [...grouped.entries()]
   }, [matching])
 
-  const saveCurrent = async () => {
-    await putEntries([entryFromPatch(store.snapshot(), 'My Patches', 'user')])
-    await library.refresh()
-  }
-
-  const importFiles = async (files: FileList | null) => {
-    if (!files?.length) return
-    const added: LibraryEntry[] = []
-    for (const file of files) {
-      const bytes = new Uint8Array(await file.arrayBuffer())
-      const bank = file.name.replace(/\.syx$/i, '')
-      for (const patch of parseSyxFile(bytes)) added.push(entryFromPatch(patch, bank, 'import'))
-    }
-    if (added.length) {
-      await putEntries(added)
-      await library.refresh()
-    }
-    setProgress(added.length ? `Imported ${added.length} patches` : 'No patches found in file')
-    window.setTimeout(() => setProgress(null), 2500)
-  }
-
-  /**
-   * The instrument answers no sysex request, so its memory cannot be pulled. It does dump from its
-   * own front panel, so this arms a listener and the player triggers the dump on the synth.
-   */
-  const toggleReceive = async () => {
-    if (receiving) {
-      sync.stopCapture()
-      setReceiving(false)
-      const collected = [...received.current.values()]
-      received.current.clear()
-      if (collected.length) {
-        await putEntries(collected)
-        await library.refresh()
-      }
-      setProgress(collected.length ? `Received ${collected.length} patches` : 'Nothing received')
-      window.setTimeout(() => setProgress(null), 3000)
-      return
-    }
-
-    received.current.clear()
-    setReceiving(true)
-    setProgress('Listening — start a dump on the synth (GLOBALS, then Pgm Dump)')
-    sync.startCapture((patch) => {
-      // Filed per group, matching how the instrument organises them — an ALL dump is 400
-      // programs, which in one bank is an unnavigable list. Keyed by slot, so a dump sent twice
-      // replaces rather than duplicates.
-      const id = `device:${patch.group}:${patch.program}`
-      const bank = `Synth Group ${patch.group + 1}`
-      received.current.set(id, entryFromPatch(patch, bank, 'device', id))
-      setProgress(`Listening — ${received.current.size} received`)
-    })
-  }
+  const otherDock = prefs.libraryDock === 'header' ? 'aside' : 'header'
 
   return (
-    <section className="library">
+    <section className={`library dock-${prefs.libraryDock}`}>
       <div className="library-head">
         <h2>Library</h2>
-        <button className="icon" onClick={onClose} aria-label="Close library">
-          ×
-        </button>
-      </div>
-
-      <div className="library-actions">
         <input
           className="search"
           placeholder="Search patches"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        <div className="row">
-          <button onClick={saveCurrent}>Save current</button>
-          <button onClick={() => fileInput.current?.click()}>Import .syx</button>
+        <span className="count">{matching.length}</span>
+        <div className="library-head-buttons">
           <button
-            className={receiving ? 'primary' : undefined}
-            onClick={toggleReceive}
-            disabled={connection.state !== 'ready'}
-            title="Listen for program dumps sent from the instrument"
+            className="icon-button"
+            onClick={() => settings.update({ libraryDock: otherDock })}
+            title={otherDock === 'aside' ? 'Dock beside the panel' : 'Dock under the header'}
+            aria-label={otherDock === 'aside' ? 'Dock beside the panel' : 'Dock under the header'}
           >
-            {receiving ? 'Stop receiving' : 'Receive dump'}
+            <DockIcon dock={otherDock} />
+          </button>
+          <button className="icon" onClick={onClose} aria-label="Close library">
+            ×
           </button>
         </div>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".syx"
-          multiple
-          hidden
-          onChange={(e) => {
-            void importFiles(e.target.files)
-            e.target.value = ''
-          }}
-        />
-        {progress && <p className="progress">{progress}</p>}
       </div>
 
       <div className="library-list">
-        {banks.map(([bank, list]) => (
-          <section key={bank}>
-            <header>
-              <h3>{bank}</h3>
-              <span className="count">{list.length}</span>
-              <button
-                className="link"
-                onClick={() =>
-                  download(`${bank}.syx`, toSyxFile(list.map(patchFromEntry), connection.deviceId))
-                }
-              >
-                Export
-              </button>
-            </header>
-            <ul>
-              {list.map((entry) => (
-                <li key={entry.id} className={entry.id === lib.selectedId ? 'selected' : undefined}>
+        {blocks.map(([bank, list]) => (
+          <ul key={bank}>
+            {list.map((entry) => (
+              <li key={entry.id} className={entry.id === lib.selectedId ? 'selected' : undefined}>
+                <button
+                  className="entry"
+                  title={`${entry.bank} — load onto the panel and send to the synth`}
+                  onClick={() => auditionEntry(entry)}
+                >
+                  <span className="entry-slot">{slotLabel(entry.group, entry.program)}</span>
+                  <span className="entry-name">{entry.name}</span>
+                </button>
+                {/* Only user content can be deleted, and only on hover — the grid is dense. */}
+                {entry.source !== 'factory' && (
                   <button
-                    className="entry"
-                    title="Load onto the panel and send to the synth"
-                    onClick={() => auditionEntry(entry)}
+                    className="link danger row-delete"
+                    title="Delete this patch"
+                    aria-label={`Delete ${entry.name}`}
+                    onClick={async () => {
+                      await deleteEntry(entry.id)
+                      await library.refresh()
+                    }}
                   >
-                    <span className="entry-slot">{slotLabel(entry.group, entry.program)}</span>
-                    <span className="entry-name">{entry.name}</span>
+                    ×
                   </button>
-                  {/* Only user content can be deleted, and only on hover — the grid is dense. */}
-                  {entry.source !== 'factory' && (
-                    <button
-                      className="link danger row-delete"
-                      title="Delete this patch"
-                      aria-label={`Delete ${entry.name}`}
-                      onClick={async () => {
-                        await deleteEntry(entry.id)
-                        await library.refresh()
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+                )}
+              </li>
+            ))}
+          </ul>
         ))}
-        {!banks.length && <p className="empty">No patches match.</p>}
+        {!blocks.length && <p className="empty">No patches match.</p>}
       </div>
     </section>
   )

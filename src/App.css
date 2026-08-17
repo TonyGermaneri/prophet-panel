@@ -75,6 +75,13 @@
   padding: 3px 9px;
   letter-spacing: 3px;
 }
+.slot.vacant {
+  color: #4e5560;
+  background: #131519;
+  border-color: #23262c;
+  text-shadow: none;
+}
+
 .patch-name {
   background: #0f1114;
   border: 1px solid #2b2f36;
@@ -123,31 +130,39 @@
 
 /* ---- Library ---- */
 
-/*
- * Sits above the instrument rather than beside it, so entries get the full width. Height is
- * capped and the list scrolls inside, or 400 patches would push the synth off the screen.
- */
 .library {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 2100px;
-  margin: 0 auto;
-  max-height: 46vh;
   min-height: 0;
   background: #14161a;
-  border: 1px solid #262a31;
-  border-radius: 8px;
   overflow: hidden;
+}
+
+/*
+ * Docked under the header: full bleed, so it meets the toolbar with no gap. The stage's padding
+ * is cancelled by negative margins rather than removed, since the panel below still wants it.
+ */
+.library.dock-header {
+  flex: 0 0 auto;
+  margin: -20px -20px 0;
+  max-height: 46vh;
+  border-bottom: 1px solid #262a31;
+}
+
+/* Docked beside the panel: a full-height column, like the monitor and bindings panels. */
+.library.dock-aside {
+  flex: 0 0 420px;
+  width: 420px;
+  height: 100%;
+  border-left: 1px solid #000;
 }
 
 .library-head {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 8px 14px;
   border-bottom: 1px solid #23262c;
 }
 .library-head h2 {
@@ -156,6 +171,13 @@
   margin: 0;
   text-transform: uppercase;
   color: #9aa1ac;
+  flex: 0 0 auto;
+}
+.library-head-buttons {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .library button.icon,
 .monitor button.icon,
@@ -166,21 +188,7 @@
   font-size: 20px;
   line-height: 1;
   padding: 0 4px;
-}
-
-.library-actions {
-  flex: 0 0 auto;
-  padding: 10px 14px;
-  border-bottom: 1px solid #23262c;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.library-actions .row {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
+  cursor: pointer;
 }
 .search {
   background: #0f1114;
@@ -188,8 +196,12 @@
   border-radius: 5px;
   color: #dcd8ce;
   font-size: 12px;
-  padding: 6px 9px;
-  width: 220px;
+  padding: 5px 9px;
+  width: 200px;
+}
+.count {
+  color: #565c66;
+  font-size: 11px;
 }
 .progress {
   color: #d9a066;
@@ -201,45 +213,29 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 12px;
-}
-.library-list section header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px 5px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #14161a;
-  border-bottom: 1px solid #1e2126;
-}
-.library-list h3 {
-  font-size: 11px;
-  letter-spacing: 1.4px;
-  margin: 0;
-  text-transform: uppercase;
-  color: #7f868f;
-}
-.count {
-  color: #565c66;
-  font-size: 11px;
+  padding: 6px 0 12px;
 }
 
 /*
  * Column-major over eight rows, so each column is one of the instrument's five banks and the
- * grid reads exactly as the front panel is organised.
+ * grid reads the way the front panel is organised. Docked aside there is only room for one.
  */
 .library-list ul {
   list-style: none;
   margin: 0;
-  padding: 4px 14px;
+  padding: 2px 12px;
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(8, auto);
   grid-auto-columns: minmax(0, 1fr);
   gap: 1px 10px;
 }
+.dock-aside .library-list ul {
+  grid-auto-flow: row;
+  grid-template-rows: none;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .library-list li {
   display: flex;
   min-width: 0;
@@ -259,7 +255,7 @@ button.entry {
   display: flex;
   flex: 1;
   gap: 8px;
-  padding: 4px 6px;
+  padding: 3px 6px;
   text-align: left;
   min-width: 0;
   font-size: 12px;
@@ -283,11 +279,20 @@ button.entry {
   color: #6d7480;
   font-size: 11px;
   padding: 3px 4px;
+  cursor: pointer;
 }
-.library button.link:hover {
-  background: none;
-  color: #d3cfc5;
-  text-decoration: underline;
+.row-delete {
+  opacity: 0;
+  flex: 0 0 auto;
+  font-size: 14px !important;
+  line-height: 1;
+}
+.library-list li:hover .row-delete,
+.row-delete:focus-visible {
+  opacity: 1;
+}
+.library button.link.danger:hover {
+  color: #e0674a;
 }
 .empty {
   color: #5c626b;
@@ -817,4 +822,52 @@ button.entry {
 }
 .library button.link.danger:hover {
   color: #e0674a;
+}
+
+/* ---- Export scope picker ---- */
+
+.scope-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.scope {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 7px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: #cfcbc2;
+  font-size: 13px;
+}
+.scope:hover {
+  background: #1e2126;
+}
+.scope input {
+  accent-color: #c25a38;
+  cursor: pointer;
+}
+.scope-label {
+  font-weight: 600;
+}
+.scope-hint {
+  grid-column: 2;
+  color: #6f7580;
+  font-size: 11px;
+}
+.scope-count {
+  grid-row: 1 / span 2;
+  grid-column: 3;
+  color: #b8724a;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+.scope.empty {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

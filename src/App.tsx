@@ -93,7 +93,9 @@ export function App() {
       />
       <div className="body">
         <main className="stage">
-          {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
+          {libraryOpen && prefs.libraryDock === 'header' && (
+            <LibraryPanel onClose={() => setLibraryOpen(false)} />
+          )}
           <Panel compact={prefs.hideKeyboard} />
           <p className="keyboard-hint">
             Play with <kbd>A</kbd>–<kbd>K</kbd> and <kbd>W</kbd>–<kbd>U</kbd> · <kbd>Z</kbd>/
@@ -102,6 +104,9 @@ export function App() {
         </main>
         {bind.active && <BindingsPanel onClose={() => bind.setActive(false)} />}
         {monitorOpen && <MonitorPanel onClose={() => setMonitorOpen(false)} />}
+        {libraryOpen && prefs.libraryDock === 'aside' && (
+          <LibraryPanel onClose={() => setLibraryOpen(false)} />
+        )}
       </div>
       {controlPanelOpen && <ControlPanelDialog onClose={() => setControlPanelOpen(false)} />}
     </div>

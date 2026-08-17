@@ -21,6 +21,8 @@ export interface Settings {
   channel: number
   follow: boolean
   hideKeyboard: boolean
+  /** Where the library sits: a full-width strip under the header, or a column beside the panel. */
+  libraryDock: 'header' | 'aside'
   /**
    * Set once a connection has actually been established. Remembering the port ids is not enough
    * to reconnect on load: this records that the user has already granted MIDI access, which is
@@ -39,6 +41,7 @@ const DEFAULTS: Settings = {
   channel: 0,
   follow: true,
   hideKeyboard: false,
+  libraryDock: 'header',
   hasConnected: false,
 }
 

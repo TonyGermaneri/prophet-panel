@@ -24,6 +24,7 @@ export function Toolbar({
   const library = useLibrary()
 
   const ready = midi.state === 'ready'
+  const occupied = Boolean(library.entryAtSlot(meta.group, meta.program))
 
   return (
     <header className="toolbar">
@@ -38,10 +39,13 @@ export function Toolbar({
         >
           −
         </button>
-        <span className="slot">
-          {meta.group + 1}
-          {bankOf(meta.program)}
-          {programInBank(meta.program)}
+        {/*
+          Only shows a number when a patch actually occupies that slot. The panel can be moved to
+          an empty slot by the programmer buttons or an inbound program change, and printing a
+          number for nothing invites you to go looking for a patch that is not there.
+        */}
+        <span className={occupied ? 'slot' : 'slot vacant'} title={occupied ? meta.name : 'No patch in this slot'}>
+          {occupied ? `${meta.group + 1}${bankOf(meta.program)}${programInBank(meta.program)}` : '———'}
         </span>
         <button
           className="stepper"

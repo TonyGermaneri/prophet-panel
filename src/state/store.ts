@@ -23,6 +23,10 @@ import {
 
 export type ChangeSource = 'ui' | 'midi' | 'patch'
 
+/** The instrument's program memory: ten groups of five banks of eight. */
+export const GROUP_COUNT = 10
+export const PROGRAMS_PER_GROUP = 40
+
 export interface UiControl {
   id: string
   min: number
@@ -135,8 +139,17 @@ export class PatchStore {
     this.notifyMeta()
   }
 
+  /**
+   * The instrument has ten groups of forty programs. A program change or bank select arriving over
+   * MIDI carries a full 7-bit value, so without clamping the panel can be pushed to a slot that
+   * cannot exist and the header ends up displaying a number for nothing.
+   */
   setSlot(group: number, program: number): void {
-    this.patch = { ...this.patch, group, program }
+    this.patch = {
+      ...this.patch,
+      group: Math.max(0, Math.min(GROUP_COUNT - 1, Math.round(group))),
+      program: Math.max(0, Math.min(PROGRAMS_PER_GROUP - 1, Math.round(program))),
+    }
     this.notifyMeta()
   }
 

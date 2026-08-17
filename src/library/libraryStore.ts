@@ -37,6 +37,14 @@ class LibraryStore {
     return this.byId.get(id)
   }
 
+  /** The patch occupying a slot, if any. The header refuses to show a number with nothing behind it. */
+  entryAtSlot(group: number, program: number): LibraryEntry | undefined {
+    for (const entry of this.byId.values()) {
+      if (entry.group === group && entry.program === program) return entry
+    }
+    return undefined
+  }
+
   /** Where the selection sits in the current order, for enabling the stepper's ends. */
   get position(): { index: number; total: number } {
     return {
