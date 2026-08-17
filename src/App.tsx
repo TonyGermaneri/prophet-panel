@@ -46,10 +46,14 @@ export function App() {
     }
     monitor.attach(connection)
 
-    // MIDI learn and binding playback listen to every input except the synth's own, so reaching
-    // for a controller cannot capture whatever the Prophet happens to be transmitting.
+    // Everything from the performance controller lands here. Bindings get first refusal, since an
+    // automation message should drive its panel control rather than reaching the synth twice;
+    // whatever no binding claims is passed through as performance data.
     const unbindPorts = connection.onPortMessage((portId, portName, data) => {
-      bindings.handle(portId, portName, data, connection.input?.id ?? null)
+      if (portId !== connection.controllerInput?.id) return
+      if (bindings.handle(portId, portName, data) === 'ignored') {
+        connection.forwardToSynth(data)
+      }
     })
 
     const unregister = registerActions({

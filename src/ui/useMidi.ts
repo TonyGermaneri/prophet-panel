@@ -10,6 +10,8 @@ export interface MidiStatus {
   outputs: PortInfo[]
   inputId: string | null
   outputId: string | null
+  controllerInputs: PortInfo[]
+  controllerInputId: string | null
 }
 
 let cached: MidiStatus = {
@@ -20,6 +22,8 @@ let cached: MidiStatus = {
   outputs: [],
   inputId: null,
   outputId: null,
+  controllerInputs: [],
+  controllerInputId: null,
 }
 
 /** useSyncExternalStore requires a stable snapshot, so rebuild only when something has changed. */
@@ -32,6 +36,8 @@ function snapshot(): MidiStatus {
     outputs: connection.outputs,
     inputId: connection.input?.id ?? null,
     outputId: connection.output?.id ?? null,
+    controllerInputs: connection.controllerInputs,
+    controllerInputId: connection.controllerInput?.id ?? null,
   }
   const same =
     cached.state === next.state &&
@@ -39,6 +45,9 @@ function snapshot(): MidiStatus {
     cached.deviceId === next.deviceId &&
     cached.inputId === next.inputId &&
     cached.outputId === next.outputId &&
+    cached.controllerInputId === next.controllerInputId &&
+    cached.controllerInputs.length === next.controllerInputs.length &&
+    cached.controllerInputs.every((p, i) => p.id === next.controllerInputs[i].id) &&
     cached.inputs.length === next.inputs.length &&
     cached.outputs.length === next.outputs.length &&
     cached.inputs.every((p, i) => p.id === next.inputs[i].id) &&

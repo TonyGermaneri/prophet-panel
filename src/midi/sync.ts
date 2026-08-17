@@ -1,9 +1,11 @@
 /**
  * Bridges the panel store and the instrument.
  *
- * Outbound: a knob move becomes an NRPN message. Writes are coalesced per parameter and flushed
- * once per animation frame, so a fast drag sends one message per parameter per frame rather than
- * one per pointer event.
+ * Outbound: a knob move becomes an NRPN message, coalesced per parameter so repeated writes in one
+ * task send once. The flush runs on a microtask, deliberately not on an animation frame: a hidden
+ * tab stops receiving frames entirely, which would silently strand every panel edit and every
+ * bound-controller move for as long as the window sat in the background — precisely when a hardware
+ * controller is being used.
  *
  * Inbound: NRPN messages from the synth update the store with source 'midi', and sysex program or
  * edit-buffer dumps replace the whole patch. Store changes originating from MIDI or from a patch
@@ -47,22 +49,12 @@ export interface SyncOptions {
  * Timers are taken from the global scope rather than `window` so the sync logic can be exercised
  * under fake timers in a plain Node test, without a DOM.
  */
-const scheduleFrame = (fn: () => void): number =>
-  typeof requestAnimationFrame === 'function'
-    ? requestAnimationFrame(fn)
-    : (setTimeout(fn, 16) as unknown as number)
-
-const cancelFrame = (id: number): void => {
-  if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id)
-  else clearTimeout(id as unknown as ReturnType<typeof setTimeout>)
-}
-
 const later = (fn: () => void, ms: number): number => setTimeout(fn, ms) as unknown as number
 const cancel = (id: number): void => clearTimeout(id as unknown as ReturnType<typeof setTimeout>)
 
 export class SynthSync {
   private pending = new Map<number, number>()
-  private frame = 0
+  private flushQueued = false
   private receiver: NrpnReceiver
   private teardown: (() => void)[] = []
   private bulkFetching = false
@@ -102,8 +94,7 @@ export class SynthSync {
     for (const fn of this.teardown) fn()
     this.teardown = []
     this.store.onChange = null
-    if (this.frame) cancelFrame(this.frame)
-    this.frame = 0
+    this.pending.clear()
     cancel(this.followTimer)
     cancel(this.retryTimer)
     this.awaitingDump = false
@@ -127,9 +118,11 @@ export class SynthSync {
   }
 
   private scheduleFlush(): void {
-    if (this.frame) return
-    this.frame = scheduleFrame(() => {
-      this.frame = 0
+    if (this.flushQueued) return
+    this.flushQueued = true
+    // Microtasks are never throttled or paused, unlike frames and (in background tabs) timers.
+    queueMicrotask(() => {
+      this.flushQueued = false
       this.flush()
     })
   }

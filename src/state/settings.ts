@@ -9,9 +9,15 @@ const KEY = 'prophet-panel:settings'
 export interface Settings {
   inputId: string | null
   outputId: string | null
+  /**
+   * The performance controller: the port whose notes, CC and aftertouch are passed through to the
+   * synth, and the only port MIDI Bind listens to. Kept separate from the synth's own ports.
+   */
+  controllerInputId: string | null
   /** Port names, so a remembered choice can be matched again when ids change between sessions. */
   inputName: string | null
   outputName: string | null
+  controllerInputName: string | null
   channel: number
   follow: boolean
   hideKeyboard: boolean
@@ -26,8 +32,10 @@ export interface Settings {
 const DEFAULTS: Settings = {
   inputId: null,
   outputId: null,
+  controllerInputId: null,
   inputName: null,
   outputName: null,
+  controllerInputName: null,
   channel: 0,
   follow: true,
   hideKeyboard: false,

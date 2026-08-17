@@ -5,8 +5,8 @@
  * the change flows straight on to the hardware Prophet through the normal sync path. That is what
  * makes an outside controller drive the synth without any special-case plumbing.
  *
- * The synth's own input port is excluded from learning: without that, reaching for a controller
- * would bind whatever the Prophet happened to be transmitting at the time.
+ * Only the port chosen as the performance controller is fed in here, which is what keeps the
+ * Prophet's own transmissions from being captured while reaching for a knob on a controller.
  */
 
 import { controlRange, store } from '../state/store'
@@ -17,6 +17,12 @@ export type BindingSource =
   | { kind: 'note'; channel: number; number: number }
   | { kind: 'pitchbend'; channel: number }
   | { kind: 'aftertouch'; channel: number }
+
+/**
+ * What became of a message. 'ignored' is the signal to the caller that nothing claimed it, so it
+ * is free to pass the message through to the synth as performance data.
+ */
+export type BindingResult = 'learned' | 'applied' | 'ignored'
 
 export interface Binding {
   controlId: string
@@ -138,23 +144,21 @@ export class BindingStore {
   }
 
   /**
-   * Handle a message from a controller. Returns true if it was consumed as a learn event.
-   * While a control is selected the next movement binds it; otherwise matching bindings apply.
+   * Handle a message from the performance controller. While a control is selected the next
+   * movement binds it; otherwise any matching bindings apply.
    */
-  handle(portId: string, portName: string, data: Uint8Array, excludePortId?: string | null): boolean {
-    if (portId === excludePortId) return false
+  handle(portId: string, portName: string, data: Uint8Array): BindingResult {
     const parsed = parseSource(data)
-    if (!parsed) return false
+    if (!parsed) return 'ignored'
 
     if (this.active && this.selected) {
       this.bind(this.selected, portId, portName, parsed.source)
-      return true
+      return 'learned'
     }
 
-    for (const binding of this.index.get(sourceKey(portId, parsed.source)) ?? []) {
-      this.apply(binding, parsed.value)
-    }
-    return false
+    const matches = this.index.get(sourceKey(portId, parsed.source)) ?? []
+    for (const binding of matches) this.apply(binding, parsed.value)
+    return matches.length ? 'applied' : 'ignored'
   }
 
   private apply(binding: Binding, value: number): void {

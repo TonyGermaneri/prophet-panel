@@ -6,6 +6,7 @@
  */
 
 import { settings } from '../state/settings'
+import { forwardable, remapChannel } from './forward'
 import {
   DEFAULT_DEVICE_ID,
   decodeMessage,
@@ -49,6 +50,8 @@ export class MidiConnection {
   access: MIDIAccess | null = null
   input: MIDIInput | null = null
   output: MIDIOutput | null = null
+  /** The performance controller, distinct from the synth's own input. */
+  controllerInput: MIDIInput | null = null
   device: DeviceInfo | null = null
   channel = 0
 
@@ -143,11 +146,38 @@ export class MidiConnection {
 
     this.setInput(pick(inputs, saved.inputId, saved.inputName)?.id ?? null)
     this.setOutput(pick(outputs, saved.outputId, saved.outputName)?.id ?? null)
+
+    // The controller defaults to the first port that is not the synth. Choosing the synth's own
+    // port would loop its keyboard straight back at it.
+    const others = inputs.filter((p) => p.id !== this.input?.id)
+    this.setControllerInput(
+      (others.find((p) => p.id === saved.controllerInputId) ??
+        others.find((p) => saved.controllerInputName !== null && p.name === saved.controllerInputName) ??
+        others[0])?.id ?? null,
+    )
+  }
+
+  /** Inputs eligible as a performance controller: everything except the synth's own port. */
+  get controllerInputs(): PortInfo[] {
+    return this.inputs.filter((p) => p.id !== this.input?.id)
   }
 
   setInput(id: string | null): void {
     this.input = id ? (this.access?.inputs.get(id) ?? null) : null
     settings.update({ inputId: this.input?.id ?? null, inputName: this.input?.name ?? null })
+    // Selecting the synth on a port already used as the controller would loop it back on itself.
+    if (this.controllerInput && this.controllerInput.id === this.input?.id) {
+      this.setControllerInput(null)
+    }
+    this.notify()
+  }
+
+  setControllerInput(id: string | null): void {
+    this.controllerInput = id ? (this.access?.inputs.get(id) ?? null) : null
+    settings.update({
+      controllerInputId: this.controllerInput?.id ?? null,
+      controllerInputName: this.controllerInput?.name ?? null,
+    })
     this.notify()
   }
 
@@ -180,6 +210,12 @@ export class MidiConnection {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
     this.output?.send(Array.from(bytes))
     for (const fn of this.sentHandlers) fn(bytes)
+  }
+
+  /** Relay a performance message from the controller onto the synth's channel. */
+  forwardToSynth(data: Uint8Array): void {
+    if (!forwardable(data)) return
+    this.send(remapChannel(data, this.channel))
   }
 
   /**

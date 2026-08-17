@@ -53,7 +53,7 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             <label className="field">
-              <span>Input</span>
+              <span>Synth in</span>
               <select
                 value={midi.inputId ?? ''}
                 onChange={(e) => connection.setInput(e.target.value || null)}
@@ -68,7 +68,7 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
             </label>
 
             <label className="field">
-              <span>Output</span>
+              <span>Synth out</span>
               <select
                 value={midi.outputId ?? ''}
                 onChange={(e) => connection.setOutput(e.target.value || null)}
@@ -102,6 +102,38 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
           </>
         )}
       </section>
+
+      {ready && (
+        <section className="dialog-section">
+          <h3>Input Device</h3>
+          <p className="dialog-blurb">
+            A controller to play and automate the synth through. Its notes, control changes and
+            aftertouch are passed on to the Prophet, and MIDI Bind listens to this device only.
+          </p>
+
+          <label className="field">
+            <span>Device</span>
+            <select
+              value={midi.controllerInputId ?? ''}
+              onChange={(e) => connection.setControllerInput(e.target.value || null)}
+            >
+              <option value="">— none —</option>
+              {midi.controllerInputs.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {!midi.controllerInputs.length && (
+            <p className="hint">
+              No inputs available besides the synth itself, which is excluded here — routing its own
+              keyboard back to it would loop.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="dialog-section">
         <h3>About</h3>

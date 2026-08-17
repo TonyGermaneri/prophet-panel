@@ -7,8 +7,7 @@ export function BindingsPanel({ onClose }: { onClose: () => void }) {
   const bind = useBindings()
   const midi = useMidiStatus()
 
-  const synthPort = midi.inputs.find((p) => p.id === midi.inputId)
-  const others = midi.inputs.filter((p) => p.id !== midi.inputId)
+  const controller = midi.controllerInputs.find((p) => p.id === midi.controllerInputId)
 
   return (
     <aside className="bindings">
@@ -39,11 +38,15 @@ export function BindingsPanel({ onClose }: { onClose: () => void }) {
           </p>
         ) : null}
 
-        {!others.length && (
+        {controller ? (
           <p className="hint">
-            No controller inputs besides {synthPort ? synthPort.name : 'the synth'}, which is
-            excluded from learning so its own knobs cannot be captured. Connect a controller to
-            bind.
+            Listening to <strong>{controller.name}</strong>. Change it under Input Device in the
+            control panel.
+          </p>
+        ) : (
+          <p className="hint">
+            No input device selected. Choose one under Input Device in the control panel — binding
+            listens to that device only, so the synth's own knobs cannot be captured by accident.
           </p>
         )}
 

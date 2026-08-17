@@ -4,7 +4,6 @@ import { store } from '../../state/store'
 import { BindingStore, describeSource, mapValue, parseSource } from '../bindings'
 import { CC, encodeNrpn } from '../nrpn'
 
-const SYNTH = 'synth-port'
 const CONTROLLER = 'controller-port'
 
 const cc = (channel: number, controller: number, value: number) =>
@@ -79,43 +78,42 @@ describe('learning and applying', () => {
     bind.setActive(true)
     bind.select('filterCutoff')
 
-    const consumed = bind.handle(CONTROLLER, 'Launch', cc(0, 74, 100), SYNTH)
-
-    expect(consumed).toBe(true)
+    expect(bind.handle(CONTROLLER, 'Launch', cc(0, 74, 100))).toBe('learned')
     expect(bind.bindings).toHaveLength(1)
     expect(bind.bindingFor('filterCutoff')?.source).toEqual({ kind: 'cc', channel: 0, number: 74 })
     // Selection clears so the next click starts a fresh binding.
     expect(bind.selected).toBeNull()
   })
 
-  it('ignores the synth’s own port while learning', () => {
-    bind.setActive(true)
-    bind.select('filterCutoff')
+  it('reports whether a message was claimed, so the caller can pass on what was not', () => {
+    bind.bind('filterCutoff', CONTROLLER, 'Launch', { kind: 'cc', channel: 0, number: 74 })
 
-    expect(bind.handle(SYNTH, 'Prophet', cc(0, 74, 100), SYNTH)).toBe(false)
-    expect(bind.bindings).toHaveLength(0)
-    expect(bind.selected).toBe('filterCutoff')
+    expect(bind.handle(CONTROLLER, 'Launch', cc(0, 74, 60))).toBe('applied')
+    // An unbound control change is nobody's: the caller forwards it to the synth.
+    expect(bind.handle(CONTROLLER, 'Launch', cc(0, 21, 60))).toBe('ignored')
+    // So are notes, until one is bound to something.
+    expect(bind.handle(CONTROLLER, 'Launch', new Uint8Array([0x90, 60, 100]))).toBe('ignored')
   })
 
   it('drives the bound control once learned', () => {
     bind.setActive(true)
     bind.select('filterCutoff')
-    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0))
     bind.setActive(false)
 
-    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 127), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 127))
     expect(store.get('filterCutoff')).toBe(120)
 
-    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 64), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 64))
     expect(store.get('filterCutoff')).toBe(60)
   })
 
   it('keeps bindings from different ports apart', () => {
     bind.bind('filterCutoff', CONTROLLER, 'Launch', { kind: 'cc', channel: 0, number: 74 })
     // The same CC from a different device must not move the control.
-    bind.handle('other-port', 'Other', cc(0, 74, 127), SYNTH)
+    bind.handle('other-port', 'Other', cc(0, 74, 127))
     expect(store.get('filterCutoff')).toBe(120 - 0) // unchanged from the init patch
-    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0))
     expect(store.get('filterCutoff')).toBe(0)
   })
 
@@ -124,9 +122,9 @@ describe('learning and applying', () => {
     bind.bind('filterCutoff', CONTROLLER, 'Launch', { kind: 'cc', channel: 0, number: 21 })
 
     expect(bind.bindings).toHaveLength(1)
-    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 74, 0))
     expect(store.get('filterCutoff')).toBe(120) // old source no longer does anything
-    bind.handle(CONTROLLER, 'Launch', cc(0, 21, 0), SYNTH)
+    bind.handle(CONTROLLER, 'Launch', cc(0, 21, 0))
     expect(store.get('filterCutoff')).toBe(0)
   })
 
@@ -134,7 +132,7 @@ describe('learning and applying', () => {
     bind.bind('filterKeyboardTrack', CONTROLLER, 'Pads', { kind: 'note', channel: 0, number: 36 })
     store.set('filterKeyboardTrack', 0, 'ui')
 
-    const press = () => bind.handle(CONTROLLER, 'Pads', new Uint8Array([0x90, 36, 100]), SYNTH)
+    const press = () => bind.handle(CONTROLLER, 'Pads', new Uint8Array([0x90, 36, 100]))
     press()
     expect(store.get('filterKeyboardTrack')).toBe(1)
     press()
@@ -157,7 +155,7 @@ describe('learning and applying', () => {
     bind.bind('filterCutoff', CONTROLLER, 'Launch', { kind: 'cc', channel: 0, number: 74 })
     const reloaded = new BindingStore()
     expect(reloaded.bindings).toHaveLength(1)
-    reloaded.handle(CONTROLLER, 'Launch', cc(0, 74, 0), SYNTH)
+    reloaded.handle(CONTROLLER, 'Launch', cc(0, 74, 0))
     expect(store.get('filterCutoff')).toBe(0)
   })
 

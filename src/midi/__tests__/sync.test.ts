@@ -136,21 +136,36 @@ describe('synth to panel', () => {
     expect(store.get('filterResonance')).toBe(77)
   })
 
-  it('does not echo synth-originated changes back to the synth', () => {
+  it('does not echo synth-originated changes back to the synth', async () => {
     connection.receive(encodeNrpn(0, param('filterCutoff').nrpn, 99))
-    vi.advanceTimersByTime(50)
+    await Promise.resolve()
     expect(connection.sent).toHaveLength(0)
   })
 
-  it('sends a knob move as NRPN, coalesced to one message per parameter', () => {
+  it('sends a knob move as NRPN, coalesced to one message per parameter', async () => {
     store.set('filterCutoff', 10, 'ui')
     store.set('filterCutoff', 20, 'ui')
     store.set('filterCutoff', 30, 'ui')
-    vi.advanceTimersByTime(50)
+    await Promise.resolve()
 
     expect(connection.sent).toHaveLength(1)
     const expected = encodeNrpn(0, param('filterCutoff').nrpn, 30)
     expect([...connection.sent[0]]).toEqual(expected)
+  })
+
+  it('flushes without needing an animation frame', async () => {
+    // A hidden tab gets no frames at all. Tying the flush to one stranded every edit for as long
+    // as the window sat in the background, which is when a hardware controller is most likely in
+    // use, so the flush must not depend on rAF being called.
+    const raf = globalThis.requestAnimationFrame
+    // @ts-expect-error deliberately removing the API to prove it is not relied on
+    delete globalThis.requestAnimationFrame
+
+    store.set('filterResonance', 42, 'ui')
+    await Promise.resolve()
+    expect(connection.sent).toHaveLength(1)
+
+    globalThis.requestAnimationFrame = raf
   })
 
   it('keeps the panel out of a bulk library fetch', async () => {

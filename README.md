@@ -23,10 +23,18 @@ the dev server works without TLS.
   control. Sysex handles whole-patch transfer. Port choices are remembered between sessions.
 - **Play from the computer keyboard** — `A`–`K` for white keys, `W`–`U` for sharps, `Z`/`X` to
   shift octave and `C`/`V` velocity. **Hide keyboard** collapses the keys, wheels and nameplate.
-- **MIDI Bind** — drive the panel (and therefore the synth) from any other controller. Click
+- **Input device** — pick a controller under the gear icon. Its notes, control changes, pitch bend
+  and aftertouch are passed through to the Prophet on the synth's own channel, so you can play and
+  automate the instrument through the app. The synth's own port is excluded from the list, since
+  routing its keyboard back to it would loop.
+- **MIDI Bind** — drive the panel (and therefore the synth) from that controller. Click
   **MIDI Bind**, click a knob or switch to select it, then move a control on your controller to
-  bind the two. The synth's own input is excluded so its knobs cannot be captured by accident.
-  Bindings are listed on the right, can be removed individually or cleared, and persist.
+  bind the two. Bindings take precedence over pass-through: a bound message drives its panel
+  control instead of reaching the synth twice. Bindings are listed on the right, can be removed
+  individually or cleared, and persist.
+- **Installable and offline** — it's a PWA. Install it from the browser's address bar to get a
+  standalone window with no URL to navigate to, and the whole app plus the factory banks are
+  precached, so it opens and runs with no network at all. MIDI still needs the hardware, of course.
 
 To drive the synth, set **Param Xmit** and **Param Rcv** to **NRPN** in its globals. Without that
 the panel looks connected but nothing moves.
@@ -45,6 +53,15 @@ the synth is plugged in by USB cable. Reach it with `GLOBALS`, then program butt
 **Selecting a patch on the synth.** The instrument sends a program change, not a dump. The panel
 follows the slot and then requests the new edit buffer — which needs sysex working in both
 directions.
+
+## Installing
+
+Open the site and use the browser's install control (an icon in the address bar in Chrome, or
+*File → Install…*). The service worker precaches the app shell and the factory banks, so it starts
+and runs offline.
+
+The worker is only registered in production builds — in front of the dev server it would serve
+stale modules and fight hot reload.
 
 ## Deploying
 
