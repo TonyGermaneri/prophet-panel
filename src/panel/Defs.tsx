@@ -18,7 +18,7 @@ export function Defs() {
       </linearGradient>
 
       <filter id="grainA" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.75 0.011" numOctaves="4" seed="11" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.011 0.75" numOctaves="4" seed="11" />
         {/* Take the noise's red channel as alpha; the offset thins the streaks out. */}
         <feColorMatrix
           type="matrix"
@@ -30,7 +30,7 @@ export function Defs() {
       </filter>
 
       <filter id="grainB" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="1.6 0.02" numOctaves="3" seed="29" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.02 1.6" numOctaves="3" seed="29" />
         <feColorMatrix
           type="matrix"
           values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -0.42"
@@ -61,6 +61,38 @@ export function Defs() {
         </feComponentTransfer>
         <feComposite in2="SourceGraphic" operator="atop" />
       </filter>
+
+      {/*
+        The wood darkens toward the edges of the cabinet. A radial overlay in a warm dark brown
+        reproduces that far more cheaply than trying to bake it into the grain filters, and keeps
+        the grain colours themselves exactly as specified.
+      */}
+      <radialGradient id="woodVignette" cx="50%" cy="44%" r="64%">
+        <stop offset="0%" stopColor="#3a2114" stopOpacity="0" />
+        <stop offset="45%" stopColor="#3a2114" stopOpacity="0.06" />
+        <stop offset="78%" stopColor="#33200f" stopOpacity="0.42" />
+        <stop offset="100%" stopColor="#26170c" stopOpacity="0.86" />
+      </radialGradient>
+
+      {/* Grey patch buttons and the red RECORD cap. */}
+      <linearGradient id="capFaceGrey" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#b6b4ad" />
+        <stop offset="55%" stopColor="#94918a" />
+        <stop offset="100%" stopColor="#6f6d67" />
+      </linearGradient>
+      <linearGradient id="capBevelGrey" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#8b8982" />
+        <stop offset="100%" stopColor="#5d5b56" />
+      </linearGradient>
+      <linearGradient id="capFaceRed" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#e2543a" />
+        <stop offset="55%" stopColor="#c33520" />
+        <stop offset="100%" stopColor="#94210f" />
+      </linearGradient>
+      <linearGradient id="capBevelRed" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#b53a24" />
+        <stop offset="100%" stopColor="#7d1a0c" />
+      </linearGradient>
 
       {/*
         Chrome. SVG has no conic gradient, so the turned-metal look comes from a linear gradient

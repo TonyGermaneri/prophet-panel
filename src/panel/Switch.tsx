@@ -90,6 +90,7 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
     <g
       className={[
         'switch',
+        spec.cap ? `cap-${spec.cap}` : '',
         bind.active ? 'bindable' : '',
         bind.selected === spec.param ? 'bind-selected' : '',
         bind.active && bind.bindingFor(spec.param) ? 'bound' : '',

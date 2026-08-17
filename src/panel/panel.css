@@ -37,6 +37,11 @@
   opacity: 0.75;
 }
 
+.chassis-vignette {
+  fill: url(#woodVignette);
+  pointer-events: none;
+}
+
 .plate {
   fill: url(#plate);
   filter: url(#plateDrop);
@@ -183,6 +188,20 @@
   fill: transparent;
 }
 
+/* Cap finishes: grey patch buttons, red RECORD. */
+.switch.cap-grey .switch-cap-face {
+  fill: url(#capFaceGrey);
+}
+.switch.cap-grey .switch-cap-bevel {
+  fill: url(#capBevelGrey);
+}
+.switch.cap-red .switch-cap-face {
+  fill: url(#capFaceRed);
+}
+.switch.cap-red .switch-cap-bevel {
+  fill: url(#capBevelRed);
+}
+
 .led-body {
   fill: url(#ledOff);
 }
@@ -257,6 +276,10 @@
 }
 
 /* ---- Wheels and keyboard ---- */
+
+.wheel-bed {
+  fill: #131313;
+}
 
 .wheel rect {
   fill: #1c1b1a;

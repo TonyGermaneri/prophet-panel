@@ -56,7 +56,12 @@ export interface KnobLayout {
   endLabels?: [string, string]
   labelDx?: number
   labelDy?: number
-  /** Snap to integer detents, as on the Vintage knob's 1-4 positions. */
+  /**
+   * Override the printed scale. Empty strings leave a tick unlabelled, as on VINTAGE, which has
+   * eleven ticks but only four numbered reference points.
+   */
+  ticks?: string[]
+  /** Snap to integer detents. */
   detents?: number
   /** Fully chromed top with a black marker, as on MASTER TUNE and VOLUME. */
   chrome?: boolean
@@ -94,6 +99,8 @@ export interface SwitchLayout {
   momentary?: boolean
   /** Momentary buttons that act rather than hold a value dispatch this named action. */
   action?: PanelAction
+  /** Cap finish. Most caps are black; the patch buttons are grey and RECORD is red. */
+  cap?: 'grey' | 'red'
 }
 
 export interface BracketLayout {
@@ -110,16 +117,39 @@ export interface BracketLayout {
  */
 const SECTION_PAD_X = 10
 
+
+/** Clear space between neighbouring section frames, in both directions. */
+const GROUP_GAP = 22
+/** Frame height, and how far its top sits above the row's control centres. */
+const BOX_H = 131
+const BOX_RISE = 61
+
+/**
+ * Control rows. The patch sheet packs the rows only ~8 units apart, but on the instrument the gap
+ * between stacked sections matches the gap between sections across, so the rows are derived from
+ * GROUP_GAP and the whole block is centred on the faceplate rather than taken from the sheet.
+ */
+const ROW1 = 159
+const ROW2 = ROW1 + BOX_H + GROUP_GAP
+const ROW3 = ROW2 + BOX_H + GROUP_GAP
+
+const rowBox = (row: number, x: number, w: number): Box => ({ x, y: row - BOX_RISE, w, h: BOX_H })
+
 const MEASURED_SECTIONS: SectionLayout[] = [
-  { id: 'polyMod', title: 'POLY-MOD', box: { x: 82, y: 116, w: 461, h: 131 } },
-  { id: 'oscA', title: 'OSCILLATOR A', box: { x: 586, y: 116, w: 478, h: 131 } },
-  { id: 'mixer', title: 'MIXER', box: { x: 1106, y: 116, w: 366, h: 131 } },
-  { id: 'filter', title: 'FILTER', box: { x: 1514, y: 116, w: 522, h: 270 } },
-  { id: 'lfo', title: 'LFO', box: { x: 82, y: 255, w: 461, h: 131 } },
-  { id: 'oscB', title: 'OSCILLATOR B', box: { x: 586, y: 255, w: 738, h: 131 } },
-  { id: 'amplifier', title: 'AMPLIFIER', box: { x: 2079, y: 255, w: 487, h: 131 } },
-  { id: 'wheelMod', title: 'WHEEL-MOD', box: { x: 82, y: 394, w: 461, h: 131 } },
-  { id: 'programmer', title: 'PROGRAMMER', box: { x: 846, y: 394, w: 1190, h: 131 } },
+  { id: 'polyMod', title: 'POLY-MOD', box: rowBox(ROW1, 82, 461) },
+  { id: 'oscA', title: 'OSCILLATOR A', box: rowBox(ROW1, 586, 478) },
+  { id: 'mixer', title: 'MIXER', box: rowBox(ROW1, 1106, 366) },
+  // The filter frame is the one that spans two rows.
+  {
+    id: 'filter',
+    title: 'FILTER',
+    box: { x: 1514, y: ROW1 - BOX_RISE, w: 522, h: ROW2 - ROW1 + BOX_H },
+  },
+  { id: 'lfo', title: 'LFO', box: rowBox(ROW2, 82, 461) },
+  { id: 'oscB', title: 'OSCILLATOR B', box: rowBox(ROW2, 586, 738) },
+  { id: 'amplifier', title: 'AMPLIFIER', box: rowBox(ROW2, 2079, 487) },
+  { id: 'wheelMod', title: 'WHEEL-MOD', box: rowBox(ROW3, 82, 461) },
+  { id: 'programmer', title: 'PROGRAMMER', box: rowBox(ROW3, 846, 1190) },
 ]
 
 export const SECTIONS: SectionLayout[] = MEASURED_SECTIONS.map((section) => ({
@@ -143,9 +173,6 @@ export function accessibleName(section: string | undefined, label: string): stri
   return title ? `${title} ${label}` : label
 }
 
-const ROW1 = 177
-const ROW2 = 316
-const ROW3 = 455
 
 export const KNOBS: KnobLayout[] = [
   // Poly-Mod — labels sit to the lower right of each knob on the real panel.
@@ -197,7 +224,14 @@ export const KNOBS: KnobLayout[] = [
 
   // Free-standing controls
   { param: 'ui:masterTune', x: 2140, y: ROW1, label: 'MASTER TUNE', scale: 'bipolar', chrome: true },
-  { param: 'vintage', x: 1418, y: ROW2, label: 'VINTAGE', scale: 'bipolar', detents: 4 },
+    {
+    param: 'vintage',
+    x: 1418,
+    y: ROW2,
+    label: 'VINTAGE',
+    // Continuous, but printed with four reference points running 4-3-2-1 clockwise.
+    ticks: ['4', '', '3', '', '', '', '', '', '2', '', '1'],
+  },
   { param: 'glideRate', x: 646, y: ROW3, label: 'GLIDE RATE' },
   { param: 'ui:volume', x: 2322, y: ROW3, label: 'VOLUME', chrome: true },
 ]
@@ -278,12 +312,12 @@ export const SWITCHES: SwitchLayout[] = [
   // Voice
   { param: 'unison', x: 761, y: ROW3, label: 'UNISON' },
   { param: 'releaseSwitch', x: 2140, y: ROW3, label: 'RELEASE' },
-  { param: 'ui:tune', x: 2505, y: ROW3, label: 'TUNE', momentary: true },
+  { param: 'ui:tune', x: 2505, y: ROW3, label: 'TUNE', momentary: true, cap: 'grey' },
 
   // Programmer
   { param: 'ui:preset', x: 879, y: ROW3, label: 'PRESET' },
-  { param: 'ui:record', x: 983, y: ROW3, label: 'RECORD', momentary: true, action: 'record' },
-  { param: 'ui:factory', x: 1088, y: ROW3, label: 'FACTORY' },
+  { param: 'ui:record', x: 983, y: ROW3, label: 'RECORD', momentary: true, action: 'record', cap: 'red' },
+  { param: 'ui:factory', x: 1088, y: ROW3, label: 'FACTORY', cap: 'grey' },
   {
     param: 'ui:groupSelect',
     x: 1154,
@@ -291,6 +325,7 @@ export const SWITCHES: SwitchLayout[] = [
     label: 'GROUP\nSELECT',
     momentary: true,
     action: 'groupSelect',
+    cap: 'grey',
   },
   {
     param: 'ui:bankSelect',
@@ -299,6 +334,7 @@ export const SWITCHES: SwitchLayout[] = [
     label: 'BANK\nSELECT',
     momentary: true,
     action: 'bankSelect',
+    cap: 'grey',
   },
   ...Array.from({ length: 8 }, (_, i): SwitchLayout => ({
     param: `ui:program${i + 1}`,
@@ -307,6 +343,7 @@ export const SWITCHES: SwitchLayout[] = [
     label: String(i + 1),
     momentary: true,
     action: `program${i + 1}` as PanelAction,
+    cap: 'grey',
   })),
   { param: 'ui:globals', x: 2001, y: ROW3, label: 'GLOBALS', leds: 2 },
 ]
@@ -329,17 +366,22 @@ export function controlDisplayName(id: string): string {
 }
 
 /** The bracketed group legends printed under runs of controls. */
+const BRACKET_DROP = 61
+
 export const BRACKETS: BracketLayout[] = [
-  { x1: 88, x2: 320, y: 238, text: 'SOURCE AMOUNT' },
-  { x1: 336, x2: 540, y: 376, text: 'SHAPE' },
-  { x1: 208, x2: 540, y: 515, text: 'DESTINATION' },
-  { x1: 718, x2: 852, y: 238, text: 'SHAPE' },
-  { x1: 840, x2: 1044, y: 376, text: 'SHAPE' },
-  { x1: 1400, x2: 1930, y: 515, text: 'PROGRAM SELECT' },
+  { x1: 88, x2: 320, y: ROW1 + BRACKET_DROP, text: 'SOURCE AMOUNT' },
+  { x1: 336, x2: 540, y: ROW2 + BRACKET_DROP, text: 'SHAPE' },
+  { x1: 208, x2: 540, y: ROW3 + BRACKET_DROP, text: 'DESTINATION' },
+  { x1: 718, x2: 852, y: ROW1 + BRACKET_DROP, text: 'SHAPE' },
+  { x1: 840, x2: 1044, y: ROW2 + BRACKET_DROP, text: 'SHAPE' },
+  { x1: 1400, x2: 1930, y: ROW3 + BRACKET_DROP, text: 'PROGRAM SELECT' },
 ]
 
 /** The three-digit LED readout in the programmer section. */
-export const DISPLAY: Box = { x: 1269, y: 428, w: 114, h: 54 }
+export const DISPLAY: Box = { x: 1269, y: ROW3 - 27, w: 114, h: 54 }
+
+/** Baselines for the two rows of shifted legends printed above the program-select buttons. */
+export const SHIFT_LABEL_Y = { top: ROW3 - 45, bottom: ROW3 - 27 }
 
 /** Shifted (globals) legends printed above the eight program-select buttons. */
 export const SHIFT_LABELS: { x: number; top: string; bottom: string }[] = [
@@ -367,6 +409,9 @@ export const KEYBOARD = {
   blackHeight: 240,
   firstMidiNote: 36,
 }
+
+/** The black bed the wheels are mounted on, filling the space left of the keys. */
+export const WHEEL_PANEL: Box = { x: 57, y: 738, w: 201, h: 379 }
 
 export const WHEELS = {
   pitch: { x: 114, y: 855, w: 47, h: 160, label: 'PITCH' },

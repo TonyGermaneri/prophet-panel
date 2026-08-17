@@ -13,6 +13,8 @@ import {
   PLATE,
   SECTIONS,
   SHIFT_LABELS,
+  SHIFT_LABEL_Y,
+  WHEEL_PANEL,
   SWITCHES,
   WHEELS,
 } from './layout'
@@ -132,6 +134,15 @@ export function Panel({ compact = false }: { compact?: boolean }) {
         rx={16}
       />
 
+      <rect
+        className="chassis-vignette"
+        x={CHASSIS.x}
+        y={CHASSIS.y}
+        width={CHASSIS.w}
+        height={chassisHeight}
+        rx={16}
+      />
+
       {/* Faceplate */}
       <rect className="plate" x={PLATE.x} y={PLATE.y} width={PLATE.w} height={PLATE.h} rx={10} />
       <rect
@@ -153,11 +164,11 @@ export function Panel({ compact = false }: { compact?: boolean }) {
       {/* Shifted globals legends above the program-select row. */}
       {SHIFT_LABELS.map((s) => (
         <g key={s.x} className="shift-label">
-          <text x={s.x} y={410}>
+          <text x={s.x} y={SHIFT_LABEL_Y.top}>
             {s.top}
           </text>
           {s.bottom && (
-            <text x={s.x} y={428}>
+            <text x={s.x} y={SHIFT_LABEL_Y.bottom}>
               {s.bottom}
             </text>
           )}
@@ -177,6 +188,15 @@ export function Panel({ compact = false }: { compact?: boolean }) {
         <>
           <Logo />
 
+          {/* The wheels sit on a black bed beside the keys, not on the wood. */}
+          <rect
+            className="wheel-bed"
+            x={WHEEL_PANEL.x}
+            y={WHEEL_PANEL.y}
+            width={WHEEL_PANEL.w}
+            height={WHEEL_PANEL.h}
+            rx={4}
+          />
           <Wheel wheel={WHEELS.pitch} />
           <Wheel wheel={WHEELS.mod} />
           <Keyboard />

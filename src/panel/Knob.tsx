@@ -28,8 +28,9 @@ function polar(angleDeg: number, r: number): [number, number] {
   return [Math.cos(rad) * r, Math.sin(rad) * r]
 }
 
-function tickLabels(scale: KnobLayout['scale']): string[] {
-  if (scale === 'bipolar') return ['5', '4', '3', '2', '1', '0', '1', '2', '3', '4', '5']
+function tickLabels(spec: KnobLayout): string[] {
+  if (spec.ticks) return spec.ticks
+  if (spec.scale === 'bipolar') return ['5', '4', '3', '2', '1', '0', '1', '2', '3', '4', '5']
   return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 }
 
@@ -95,7 +96,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
   }
 
   const angle = angleFor(value, min, max)
-  const labels = tickLabels(spec.scale)
+  const labels = tickLabels(spec)
   const name = accessibleName(BY_ID.get(spec.param)?.section, spec.label)
 
   return (
