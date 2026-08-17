@@ -1,9 +1,9 @@
 /**
  * Factory bank seeding.
  *
- * Only the three whole-bank files are bundled, not the 120 individual ones — each bank is simply
- * its forty program-data messages concatenated, so they carry identical content in three requests
- * instead of a hundred and twenty.
+ * The bundled set is the Prophet-10's own program memory — all ten groups, 400 programs — captured
+ * from the instrument by its Pgm Dump and stored as one file per group. Each program carries the
+ * group and program it came from, so the library numbers them exactly as the instrument does.
  */
 
 import { parseSyxFile } from '../domain/patch'
@@ -16,7 +16,7 @@ import {
   setMeta,
 } from './db'
 
-const SEEDED_KEY = 'factory-seeded-v3'
+const SEEDED_KEY = 'factory-seeded-device-v1'
 
 const bankUrls = import.meta.glob('/patches/factory/*.syx', {
   query: '?url',
@@ -24,14 +24,10 @@ const bankUrls = import.meta.glob('/patches/factory/*.syx', {
   eager: true,
 }) as Record<string, string>
 
-function setNumber(path: string): number | null {
-  const match = /Set(\d+)-Group\d+/.exec(path.split('/').pop() ?? path)
-  return match ? Number(match[1]) : null
-}
-
 function bankLabel(path: string): string {
-  const n = setNumber(path)
-  return n ? `Factory Set ${n}` : (path.split('/').pop() ?? path).replace('.syx', '')
+  const file = path.split('/').pop() ?? path
+  const match = /Group\s*0*(\d+)/i.exec(file)
+  return match ? `Factory Group ${Number(match[1])}` : file.replace('.syx', '')
 }
 
 export async function loadFactoryEntries(): Promise<LibraryEntry[]> {
@@ -40,17 +36,11 @@ export async function loadFactoryEntries(): Promise<LibraryEntry[]> {
     const response = await fetch(url)
     if (!response.ok) continue
     const bank = bankLabel(path)
-    const set = setNumber(path)
     const bytes = new Uint8Array(await response.arrayBuffer())
-    for (const parsed of parseSyxFile(bytes)) {
-      // The conversion addressed all three sets to group 5, so every one of them claims slots
-      // 511-558 and the library shows the same numbers three times over. Spread them across one
-      // group per set instead, which is both readable and how they would sit on the instrument.
-      const patch = set ? { ...parsed, group: set - 1 } : parsed
-      // A content-derived id makes seeding idempotent: re-running it overwrites the same rows
-      // instead of appending a second copy of every factory patch.
-      const id = `factory:${bank}:${patch.group}:${patch.program}`
-      entries.push(entryFromPatch(patch, bank, 'factory', id))
+    for (const patch of parseSyxFile(bytes)) {
+      // A slot-derived id makes seeding idempotent: re-running it overwrites the same rows rather
+      // than appending a second copy of every program.
+      entries.push(entryFromPatch(patch, bank, 'factory', `factory:${patch.group}:${patch.program}`))
     }
   }
   return entries

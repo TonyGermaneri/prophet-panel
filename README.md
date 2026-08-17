@@ -16,7 +16,9 @@ the dev server works without TLS.
 
 - **Panel** — every knob and switch of the Rev4 faceplate, drawn as SVG. Drag a knob (shift for
   fine, double-click to reset, arrow keys when focused); click a cap to advance it.
-- **Library** — patches in IndexedDB, seeded on first run with the 120 Rev3.3 factory sounds.
+- **Library** — patches in IndexedDB, seeded on first run with all 400 programs from the
+  instrument's own memory. Shown above the panel, five columns per group so each column is one of
+  the instrument's banks, numbered exactly as the synth numbers them.
   Import and export `.syx`, save the current panel state, send a patch to the synth, or pull
   programs off the instrument via **Receive dump**. The `−`/`+` buttons beside the patch number step through the
   library — not the instrument's own program memory — and follow the search filter when one is
@@ -99,7 +101,8 @@ supports Web MIDI: Chrome and Edge do, Safari and Firefox do not.
 The official [Prophet-5 MIDI Implementation
 1.4](https://sequential.com/wp-content/uploads/2021/03/Prophet-5-MIDI-Implementation-1.4.pdf) is
 the starting point, but several details in it are wrong or incomplete. What follows was verified by
-decoding all 123 files in `patches/factory/`; `npm test` re-checks every claim below.
+decoding the instrument's own 400-program dump in `patches/factory/`; `npm test` re-checks every
+claim below.
 
 **Program dump layout.** `F0 01 <device> 02 <group 0-9> <program 0-39> <152 packed bytes> F7`. The
 payload is packed MS-bit: 8-byte packets whose first byte carries the stripped high bits of the
@@ -133,7 +136,7 @@ src/panel/       SVG faceplate: layout data + Knob/Switch/Keyboard
 src/midi/        Web MIDI transport, NRPN codec, store<->synth sync
 src/library/     IndexedDB store and the librarian UI
 src/state/       patch store and React bindings
-patches/factory/ the 120 Rev3.3 factory patches plus 3 bank files
+patches/factory/ the instrument's own 400 programs, one .syx per group
 reference/panel.jpg  the patch sheet the panel geometry is derived from
 ```
 

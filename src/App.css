@@ -123,16 +123,23 @@
 
 /* ---- Library ---- */
 
+/*
+ * Sits above the instrument rather than beside it, so entries get the full width. Height is
+ * capped and the list scrolls inside, or 400 patches would push the synth off the screen.
+ */
 .library {
-  width: 380px;
-  flex: 0 0 380px;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  background: #14161a;
-  border-left: 1px solid #000;
-  overflow: hidden;
-  height: 100%;
+  width: 100%;
+  max-width: 2100px;
+  margin: 0 auto;
+  max-height: 46vh;
   min-height: 0;
+  background: #14161a;
+  border: 1px solid #262a31;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .library-head {
@@ -140,18 +147,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid #23262c;
 }
 .library-head h2 {
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 2px;
   margin: 0;
   text-transform: uppercase;
   color: #9aa1ac;
 }
 .library button.icon,
-.monitor button.icon {
+.monitor button.icon,
+.bindings button.icon {
   background: none;
   border: none;
   color: #8b929d;
@@ -162,11 +170,12 @@
 
 .library-actions {
   flex: 0 0 auto;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid #23262c;
   display: flex;
-  flex-direction: column;
-  gap: 9px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .library-actions .row {
   display: flex;
@@ -179,8 +188,8 @@
   border-radius: 5px;
   color: #dcd8ce;
   font-size: 12px;
-  padding: 7px 9px;
-  width: 100%;
+  padding: 6px 9px;
+  width: 220px;
 }
 .progress {
   color: #d9a066;
@@ -192,7 +201,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding-bottom: 12px;
 }
 .library-list section header {
   display: flex;
@@ -201,6 +210,7 @@
   padding: 9px 14px 5px;
   position: sticky;
   top: 0;
+  z-index: 1;
   background: #14161a;
   border-bottom: 1px solid #1e2126;
 }
@@ -215,16 +225,25 @@
   color: #565c66;
   font-size: 11px;
 }
+
+/*
+ * Column-major over eight rows, so each column is one of the instrument's five banks and the
+ * grid reads exactly as the front panel is organised.
+ */
 .library-list ul {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 14px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(8, auto);
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 1px 10px;
 }
 .library-list li {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 10px 0 14px;
+  min-width: 0;
+  border-radius: 4px;
 }
 .library-list li:hover {
   background: #1b1e24;
@@ -239,23 +258,26 @@ button.entry {
   cursor: pointer;
   display: flex;
   flex: 1;
-  gap: 10px;
-  padding: 6px 0;
+  gap: 8px;
+  padding: 4px 6px;
   text-align: left;
   min-width: 0;
+  font-size: 12px;
 }
 .entry-slot {
   color: #b8724a;
   font-family: 'Courier New', monospace;
   font-size: 11px;
-  width: 3ch;
+  flex: 0 0 auto;
 }
 .entry-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.library button.link {
+.library button.link,
+.monitor button.link,
+.bindings button.link {
   background: none;
   border: none;
   color: #6d7480;
@@ -266,9 +288,6 @@ button.entry {
   background: none;
   color: #d3cfc5;
   text-decoration: underline;
-}
-.library button.link.danger:hover {
-  color: #e0674a;
 }
 .empty {
   color: #5c626b;
@@ -784,4 +803,18 @@ button.entry {
 .stepper:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.row-delete {
+  opacity: 0;
+  flex: 0 0 auto;
+  font-size: 14px !important;
+  line-height: 1;
+}
+.library-list li:hover .row-delete,
+.row-delete:focus-visible {
+  opacity: 1;
+}
+.library button.link.danger:hover {
+  color: #e0674a;
 }

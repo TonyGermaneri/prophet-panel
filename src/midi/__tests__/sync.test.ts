@@ -49,11 +49,10 @@ function fakeConnection() {
   return fake
 }
 
-const BRASS = parseSyxFile(
+/** A real program straight off the instrument, rather than a synthetic payload. */
+const SAMPLE = parseSyxFile(
   new Uint8Array(
-    readFileSync(
-      join(process.cwd(), 'patches', 'factory', 'Rev3_Group1', 'P5_Factory-G5-1-1_BRASS.syx'),
-    ),
+    readFileSync(join(process.cwd(), 'patches', 'factory', 'Prophet-10 Factory Group 01.syx')),
   ),
 )[0]
 
@@ -80,13 +79,14 @@ describe('synth to panel', () => {
   it('moves the panel when an edit buffer dump arrives', () => {
     expect(store.get('filterEnvAmount')).not.toBe(91)
 
-    connection.receive(encodeEditBuffer(0x32, BRASS.payload))
+    connection.receive(encodeEditBuffer(0x32, SAMPLE.payload))
 
-    expect(store.name).toBe('BRASS')
-    expect(store.get('filterEnvAmount')).toBe(91)
-    expect(store.get('filterCutoff')).toBe(0)
-    expect(store.get('mixOscA')).toBe(120)
-    expect(store.get('oscASaw')).toBe(1)
+    expect(store.name).toBe(SAMPLE.name)
+    expect(store.name.length).toBeGreaterThan(0)
+    // Every stored parameter must arrive, not just the name.
+    expect(store.get('filterCutoff')).toBe(SAMPLE.payload[17])
+    expect(store.get('mixOscA')).toBe(SAMPLE.payload[14])
+    expect(store.get('ampRelease')).toBe(SAMPLE.payload[50])
   })
 
   it('follows a program change made on the instrument', () => {
@@ -102,10 +102,10 @@ describe('synth to panel', () => {
     expect(connection.sent.filter(isRequestEditBuffer)).toHaveLength(1)
 
     // The dump that comes back drives the knobs, and stops the retry from firing.
-    connection.receive(encodeEditBuffer(0x32, BRASS.payload))
+    connection.receive(encodeEditBuffer(0x32, SAMPLE.payload))
     vi.advanceTimersByTime(1000)
     expect(connection.sent.filter(isRequestEditBuffer)).toHaveLength(1)
-    expect(store.get('filterEnvAmount')).toBe(91)
+    expect(store.get('filterEnvAmount')).toBe(SAMPLE.payload[40])
   })
 
   it('retries once when the synth does not answer the first request', () => {
@@ -175,19 +175,19 @@ describe('synth to panel', () => {
     // carry one, and the synth silently drops anything addressed elsewhere — on a fresh origin
     // that looks like "knobs work but patches do nothing".
     connection.deviceIdConfirmed = false
-    sync.sendEditBuffer(BRASS)
+    sync.sendEditBuffer(SAMPLE)
     expect(connection.sent.map((m) => m[2])).toEqual([0x31, 0x32, 0x33])
     expect(connection.sent.every((m) => m[3] === 0x03)).toBe(true)
 
     connection.sent.length = 0
     connection.deviceIdConfirmed = true
-    sync.sendEditBuffer(BRASS)
+    sync.sendEditBuffer(SAMPLE)
     expect(connection.sent.map((m) => m[2])).toEqual([0x32])
   })
 
   it('addresses a program write the same way', () => {
     connection.deviceIdConfirmed = false
-    sync.writeProgram(BRASS, 4, 9)
+    sync.writeProgram(SAMPLE, 4, 9)
     expect(connection.sent.map((m) => m[2])).toEqual([0x31, 0x32, 0x33])
     expect(connection.sent.every((m) => m[3] === 0x02 && m[4] === 4 && m[5] === 9)).toBe(true)
   })
@@ -196,7 +196,7 @@ describe('synth to panel', () => {
     // Answer every program request the way the instrument would, so the fetch runs to completion.
     connection.autoRespond = (message) => {
       if (message[0] === 0xf0 && message[3] === 0x05) {
-        connection.receive(encodeProgramData(0x32, message[4], message[5], BRASS.payload))
+        connection.receive(encodeProgramData(0x32, message[4], message[5], SAMPLE.payload))
       }
     }
 

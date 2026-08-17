@@ -85,8 +85,12 @@ export function patchFromEntry(entry: LibraryEntry): Patch {
 
 export async function allEntries(): Promise<LibraryEntry[]> {
   const rows = await (await db()).getAll('patches')
+  // Numeric collation, or "Synth Group 10" sorts between groups 1 and 2.
   return rows.sort(
-    (a, b) => a.bank.localeCompare(b.bank) || a.group - b.group || a.program - b.program,
+    (a, b) =>
+      a.bank.localeCompare(b.bank, undefined, { numeric: true }) ||
+      a.group - b.group ||
+      a.program - b.program,
   )
 }
 

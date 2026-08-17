@@ -30,7 +30,10 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
   const matching = useMemo(() => {
     const needle = filter.trim().toLowerCase()
     const all = lib.all.sort(
-      (a, b) => a.bank.localeCompare(b.bank) || a.group - b.group || a.program - b.program,
+      (a, b) =>
+        a.bank.localeCompare(b.bank, undefined, { numeric: true }) ||
+        a.group - b.group ||
+        a.program - b.program,
     )
     return needle
       ? all.filter(
@@ -99,15 +102,18 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     setReceiving(true)
     setProgress('Listening — start a dump on the synth (GLOBALS, then Pgm Dump)')
     sync.startCapture((patch) => {
-      // Keyed by slot, so a dump sent twice replaces rather than duplicates.
+      // Filed per group, matching how the instrument organises them — an ALL dump is 400
+      // programs, which in one bank is an unnavigable list. Keyed by slot, so a dump sent twice
+      // replaces rather than duplicates.
       const id = `device:${patch.group}:${patch.program}`
-      received.current.set(id, entryFromPatch(patch, 'From Synth', 'device', id))
+      const bank = `Synth Group ${patch.group + 1}`
+      received.current.set(id, entryFromPatch(patch, bank, 'device', id))
       setProgress(`Listening — ${received.current.size} received`)
     })
   }
 
   return (
-    <aside className="library">
+    <section className="library">
       <div className="library-head">
         <h2>Library</h2>
         <button className="icon" onClick={onClose} aria-label="Close library">
@@ -174,33 +180,18 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
                     <span className="entry-slot">{slotLabel(entry.group, entry.program)}</span>
                     <span className="entry-name">{entry.name}</span>
                   </button>
-                  <button
-                    className="link"
-                    title="Send again, e.g. after editing on the panel"
-                    onClick={() => auditionEntry(entry)}
-                  >
-                    Resend
-                  </button>
-                  <button
-                    className="link"
-                    onClick={() =>
-                      download(
-                        `${entry.name || 'patch'}.syx`,
-                        toSyxFile([patchFromEntry(entry)], connection.deviceId),
-                      )
-                    }
-                  >
-                    .syx
-                  </button>
+                  {/* Only user content can be deleted, and only on hover — the grid is dense. */}
                   {entry.source !== 'factory' && (
                     <button
-                      className="link danger"
+                      className="link danger row-delete"
+                      title="Delete this patch"
+                      aria-label={`Delete ${entry.name}`}
                       onClick={async () => {
                         await deleteEntry(entry.id)
                         await library.refresh()
                       }}
                     >
-                      Delete
+                      ×
                     </button>
                   )}
                 </li>
@@ -210,6 +201,6 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
         ))}
         {!banks.length && <p className="empty">No patches match.</p>}
       </div>
-    </aside>
+    </section>
   )
 }
