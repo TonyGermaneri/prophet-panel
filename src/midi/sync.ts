@@ -57,6 +57,12 @@ export class SynthSync {
   private flushQueued = false
   private receiver: NrpnReceiver
   private teardown: (() => void)[] = []
+  /**
+   * While set, incoming program dumps are handed to `onCapturedPatch` instead of being loaded onto
+   * the panel. A whole-bank dump would otherwise flash forty patches through the panel and keep
+   * none of them.
+   */
+  private capture: ((patch: Patch) => void) | null = null
   private bulkFetching = false
   private pendingGroup: number | null = null
   private followTimer = 0
@@ -159,7 +165,12 @@ export class SynthSync {
       const decoded = decodeMessage(data)
       if (decoded?.kind === 'programData') {
         this.awaitingDump = false
-        this.store.loadPatch(patchFromPayload(decoded.payload, decoded.group, decoded.program))
+        const patch = patchFromPayload(decoded.payload, decoded.group, decoded.program)
+        if (this.capture) {
+          this.capture(patch)
+          return
+        }
+        this.store.loadPatch(patch)
       } else if (decoded?.kind === 'editBuffer') {
         this.awaitingDump = false
         const patch = patchFromPayload(decoded.payload, this.store.group, this.store.program)
@@ -212,6 +223,25 @@ export class SynthSync {
   }
 
   // ---- requests ----
+
+  /**
+   * Listen for program dumps pushed by the instrument.
+   *
+   * The Prophet answers no sysex request — verified against the hardware on every device ID — so
+   * pulling its memory is not possible. It does dump on demand from its own front panel
+   * (GLOBALS, Pgm Dump), and this is how those dumps are collected.
+   */
+  startCapture(onPatch: (patch: Patch) => void): void {
+    this.capture = onPatch
+  }
+
+  stopCapture(): void {
+    this.capture = null
+  }
+
+  get capturing(): boolean {
+    return this.capture !== null
+  }
 
   requestEditBuffer(): void {
     this.connection.sendAddressed((id) => requestEditBuffer(id))

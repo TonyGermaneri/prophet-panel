@@ -18,7 +18,7 @@ the dev server works without TLS.
   fine, double-click to reset, arrow keys when focused); click a cap to advance it.
 - **Library** — patches in IndexedDB, seeded on first run with the 120 Rev3.3 factory sounds.
   Import and export `.syx`, save the current panel state, send a patch to the synth, or pull
-  programs off the instrument. The `−`/`+` buttons beside the patch number step through the
+  programs off the instrument via **Receive dump**. The `−`/`+` buttons beside the patch number step through the
   library — not the instrument's own program memory — and follow the search filter when one is
   active, so stepping stays inside what the panel is showing.
 - **MIDI** — panel edits stream out as NRPN; hardware knob moves come back and move the on-screen
@@ -55,6 +55,12 @@ the synth is plugged in by USB cable. Reach it with `GLOBALS`, then program butt
 **Selecting a patch on the synth.** The instrument sends a program change, not a dump. The panel
 follows the slot and then requests the new edit buffer — which needs sysex working in both
 directions.
+
+**Getting the instrument's own patches.** The Prophet answers no sysex *request* — verified against
+the hardware on every one of the 128 device IDs, properly spaced — so its memory cannot be pulled.
+It does dump on demand from its own front panel, so press **Receive dump** in the library, then
+`GLOBALS` → program button **7** (*Pgm Dump*) on the synth. Incoming programs are filed by the
+group and program they carry, and the panel is left alone while receiving.
 
 **Knobs reach the synth but selecting a patch does nothing.** Two causes, both reported in the
 control panel. Either sysex was not permitted for the site — NRPN carries no permission

@@ -23,6 +23,8 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
   const lib = useLibrary()
   const [filter, setFilter] = useState('')
   const [progress, setProgress] = useState<string | null>(null)
+  const [receiving, setReceiving] = useState(false)
+  const received = useRef(new Map<string, LibraryEntry>())
   const fileInput = useRef<HTMLInputElement>(null)
 
   const matching = useMemo(() => {
@@ -74,20 +76,34 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     window.setTimeout(() => setProgress(null), 2500)
   }
 
-  const fetchFromSynth = async () => {
-    const added: LibraryEntry[] = []
-    setProgress('Fetching group 1…')
-    await sync.fetchGroups(
-      [0],
-      (patch) => added.push(entryFromPatch(patch, 'From Synth', 'device')),
-      (done, total) => setProgress(`Fetching ${done}/${total}…`),
-    )
-    if (added.length) {
-      await putEntries(added)
-      await library.refresh()
+  /**
+   * The instrument answers no sysex request, so its memory cannot be pulled. It does dump from its
+   * own front panel, so this arms a listener and the player triggers the dump on the synth.
+   */
+  const toggleReceive = async () => {
+    if (receiving) {
+      sync.stopCapture()
+      setReceiving(false)
+      const collected = [...received.current.values()]
+      received.current.clear()
+      if (collected.length) {
+        await putEntries(collected)
+        await library.refresh()
+      }
+      setProgress(collected.length ? `Received ${collected.length} patches` : 'Nothing received')
+      window.setTimeout(() => setProgress(null), 3000)
+      return
     }
-    setProgress(added.length ? `Fetched ${added.length} patches` : 'No response from synth')
-    window.setTimeout(() => setProgress(null), 3000)
+
+    received.current.clear()
+    setReceiving(true)
+    setProgress('Listening — start a dump on the synth (GLOBALS, then Pgm Dump)')
+    sync.startCapture((patch) => {
+      // Keyed by slot, so a dump sent twice replaces rather than duplicates.
+      const id = `device:${patch.group}:${patch.program}`
+      received.current.set(id, entryFromPatch(patch, 'From Synth', 'device', id))
+      setProgress(`Listening — ${received.current.size} received`)
+    })
   }
 
   return (
@@ -109,8 +125,13 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
         <div className="row">
           <button onClick={saveCurrent}>Save current</button>
           <button onClick={() => fileInput.current?.click()}>Import .syx</button>
-          <button onClick={fetchFromSynth} disabled={connection.state !== 'ready'}>
-            Fetch from synth
+          <button
+            className={receiving ? 'primary' : undefined}
+            onClick={toggleReceive}
+            disabled={connection.state !== 'ready'}
+            title="Listen for program dumps sent from the instrument"
+          >
+            {receiving ? 'Stop receiving' : 'Receive dump'}
           </button>
         </div>
         <input

@@ -16,7 +16,7 @@ import {
   setMeta,
 } from './db'
 
-const SEEDED_KEY = 'factory-seeded-v2'
+const SEEDED_KEY = 'factory-seeded-v3'
 
 const bankUrls = import.meta.glob('/patches/factory/*.syx', {
   query: '?url',
@@ -24,10 +24,14 @@ const bankUrls = import.meta.glob('/patches/factory/*.syx', {
   eager: true,
 }) as Record<string, string>
 
+function setNumber(path: string): number | null {
+  const match = /Set(\d+)-Group\d+/.exec(path.split('/').pop() ?? path)
+  return match ? Number(match[1]) : null
+}
+
 function bankLabel(path: string): string {
-  const file = path.split('/').pop() ?? path
-  const match = /Set(\d+)-Group(\d+)/.exec(file)
-  return match ? `Factory Set ${match[1]}` : file.replace('.syx', '')
+  const n = setNumber(path)
+  return n ? `Factory Set ${n}` : (path.split('/').pop() ?? path).replace('.syx', '')
 }
 
 export async function loadFactoryEntries(): Promise<LibraryEntry[]> {
@@ -36,8 +40,13 @@ export async function loadFactoryEntries(): Promise<LibraryEntry[]> {
     const response = await fetch(url)
     if (!response.ok) continue
     const bank = bankLabel(path)
+    const set = setNumber(path)
     const bytes = new Uint8Array(await response.arrayBuffer())
-    for (const patch of parseSyxFile(bytes)) {
+    for (const parsed of parseSyxFile(bytes)) {
+      // The conversion addressed all three sets to group 5, so every one of them claims slots
+      // 511-558 and the library shows the same numbers three times over. Spread them across one
+      // group per set instead, which is both readable and how they would sit on the instrument.
+      const patch = set ? { ...parsed, group: set - 1 } : parsed
       // A content-derived id makes seeding idempotent: re-running it overwrites the same rows
       // instead of appending a second copy of every factory patch.
       const id = `factory:${bank}:${patch.group}:${patch.program}`
