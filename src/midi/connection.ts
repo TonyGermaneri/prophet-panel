@@ -5,6 +5,7 @@
  * qualifies, so no TLS is needed in development. Chrome and Edge implement this; Safari does not.
  */
 
+import { settings } from '../state/settings'
 import {
   DEFAULT_DEVICE_ID,
   decodeMessage,
@@ -40,6 +41,9 @@ const MODEL_NAMES: Record<number, string> = {
 
 export type MessageHandler = (data: Uint8Array) => void
 
+/** Receives traffic from every connected input, tagged with its port, for MIDI learn. */
+export type PortMessageHandler = (portId: string, portName: string, data: Uint8Array) => void
+
 export class MidiConnection {
   state: ConnectionState = 'idle'
   access: MIDIAccess | null = null
@@ -63,6 +67,7 @@ export class MidiConnection {
 
   private handlers = new Set<MessageHandler>()
   private sentHandlers = new Set<MessageHandler>()
+  private portHandlers = new Set<PortMessageHandler>()
   private stateHandlers = new Set<() => void>()
 
   async connect(): Promise<ConnectionState> {
@@ -74,13 +79,35 @@ export class MidiConnection {
     try {
       this.access = await navigator.requestMIDIAccess({ sysex: true })
       this.state = 'ready'
-      this.access.onstatechange = () => this.notify()
-      this.autoSelect()
+      this.access.onstatechange = () => {
+        // Ports appearing or disappearing must be (re)attached, or a device plugged in later
+        // would never be heard by MIDI learn.
+        this.listenToAllInputs()
+        this.notify()
+      }
+      this.channel = settings.current.channel
+      this.listenToAllInputs()
+      this.restoreOrAutoSelect()
     } catch {
       this.state = 'denied'
     }
     this.notify()
     return this.state
+  }
+
+  /**
+   * Every input is listened to, not just the selected one, so MIDI learn can hear a controller
+   * that is not the synth. Only the selected port is routed into the sync/monitor path.
+   */
+  private listenToAllInputs(): void {
+    for (const port of this.access?.inputs.values() ?? []) {
+      port.onmidimessage = (e: MIDIMessageEvent) => {
+        if (!e.data) return
+        const data = new Uint8Array(e.data)
+        for (const fn of this.portHandlers) fn(port.id, port.name ?? port.id, data)
+        if (port.id === this.input?.id) this.receive(data)
+      }
+    }
   }
 
   get inputs(): PortInfo[] {
@@ -97,28 +124,41 @@ export class MidiConnection {
     }))
   }
 
-  /** Prefer a port that names itself a Prophet; otherwise take the first available. */
-  private autoSelect(): void {
-    const looksRight = (name: string) => /prophet/i.test(name)
+  /**
+   * Restore last session's ports, then fall back. Port ids are not stable across sessions on
+   * every platform, so a remembered name is used as the second-chance match before guessing.
+   */
+  private restoreOrAutoSelect(): void {
+    const saved = settings.current
     const inputs = [...(this.access?.inputs.values() ?? [])]
     const outputs = [...(this.access?.outputs.values() ?? [])]
-    this.setInput((inputs.find((p) => looksRight(p.name ?? '')) ?? inputs[0])?.id ?? null)
-    this.setOutput((outputs.find((p) => looksRight(p.name ?? '')) ?? outputs[0])?.id ?? null)
+    const looksRight = (name: string) => /prophet/i.test(name)
+
+    const pick = <T extends MIDIPort>(ports: T[], id: string | null, name: string | null) =>
+      ports.find((p) => p.id === id) ??
+      ports.find((p) => name !== null && p.name === name) ??
+      ports.find((p) => looksRight(p.name ?? '')) ??
+      ports[0]
+
+    this.setInput(pick(inputs, saved.inputId, saved.inputName)?.id ?? null)
+    this.setOutput(pick(outputs, saved.outputId, saved.outputName)?.id ?? null)
   }
 
   setInput(id: string | null): void {
-    if (this.input) this.input.onmidimessage = null
     this.input = id ? (this.access?.inputs.get(id) ?? null) : null
-    if (this.input) {
-      this.input.onmidimessage = (e: MIDIMessageEvent) => {
-        if (e.data) this.receive(new Uint8Array(e.data))
-      }
-    }
+    settings.update({ inputId: this.input?.id ?? null, inputName: this.input?.name ?? null })
     this.notify()
   }
 
   setOutput(id: string | null): void {
     this.output = id ? (this.access?.outputs.get(id) ?? null) : null
+    settings.update({ outputId: this.output?.id ?? null, outputName: this.output?.name ?? null })
+    this.notify()
+  }
+
+  setChannel(channel: number): void {
+    this.channel = channel
+    settings.update({ channel })
     this.notify()
   }
 
@@ -161,6 +201,12 @@ export class MidiConnection {
   onSent(fn: MessageHandler): () => void {
     this.sentHandlers.add(fn)
     return () => this.sentHandlers.delete(fn)
+  }
+
+  /** Traffic from every input, tagged with its port. Used by MIDI learn and binding playback. */
+  onPortMessage(fn: PortMessageHandler): () => void {
+    this.portHandlers.add(fn)
+    return () => this.portHandlers.delete(fn)
   }
 
   onStateChange(fn: () => void): () => void {

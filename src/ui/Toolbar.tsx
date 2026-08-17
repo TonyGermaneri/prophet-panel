@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { bankOf, programInBank } from '../domain/patch'
 import { connection, sync } from '../midi'
 import { usePatchMeta } from '../state/hooks'
+import { settings } from '../state/settings'
 import { store } from '../state/store'
+import { useBindings, useSettings } from './useBindings'
 import { useMidiStatus } from './useMidi'
 
 const STATE_TEXT: Record<string, string> = {
@@ -22,8 +24,9 @@ export function Toolbar({
 }) {
   const midi = useMidiStatus()
   const meta = usePatchMeta()
+  const prefs = useSettings()
+  const bind = useBindings()
   const [busy, setBusy] = useState(false)
-  const [follow, setFollow] = useState(sync.follow)
 
   const connect = async () => {
     setBusy(true)
@@ -59,7 +62,11 @@ export function Toolbar({
 
       <div className="toolbar-group">
         {!ready ? (
-          <button className="primary" onClick={connect} disabled={busy || midi.state === 'unsupported'}>
+          <button
+            className="primary"
+            onClick={connect}
+            disabled={busy || midi.state === 'unsupported'}
+          >
             {busy ? 'Connecting…' : 'Connect MIDI'}
           </button>
         ) : (
@@ -94,10 +101,10 @@ export function Toolbar({
             <label className="toggle" title="Pull the synth's edit buffer when its program changes">
               <input
                 type="checkbox"
-                checked={follow}
+                checked={prefs.follow}
                 onChange={(e) => {
                   sync.follow = e.target.checked
-                  setFollow(e.target.checked)
+                  settings.update({ follow: e.target.checked })
                 }}
               />
               Follow synth
@@ -116,6 +123,21 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-group">
+        <label className="toggle" title="Hide the keyboard, wheels and nameplate">
+          <input
+            type="checkbox"
+            checked={prefs.hideKeyboard}
+            onChange={(e) => settings.update({ hideKeyboard: e.target.checked })}
+          />
+          Hide keyboard
+        </label>
+        <button
+          className={bind.active ? 'primary' : undefined}
+          onClick={() => bind.setActive(!bind.active)}
+          aria-pressed={bind.active}
+        >
+          MIDI Bind
+        </button>
         <button onClick={onToggleMonitor}>Monitor</button>
         <button onClick={onToggleLibrary}>Library</button>
       </div>

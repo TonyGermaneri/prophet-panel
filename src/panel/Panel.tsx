@@ -5,6 +5,7 @@ import { Switch } from './Switch'
 import {
   BRACKETS,
   CHASSIS,
+  COMPACT,
   DISPLAY,
   KNOBS,
   LOGO_PLATE,
@@ -20,7 +21,7 @@ import { bankOf, programInBank } from '../domain/patch'
 import './panel.css'
 
 /** Section outline with its legend breaking the top rule, as printed on the faceplate. */
-function SectionFrame({ title, box }: { title: string; box: typeof SECTIONS[number]['box'] }) {
+function SectionFrame({ title, box }: { title: string; box: (typeof SECTIONS)[number]['box'] }) {
   const cx = box.x + box.w / 2
   // Clear just enough rule for the legend: roughly one glyph advance per character, plus margin.
   const halfText = (title.length * 10.4) / 2 + 11
@@ -66,11 +67,7 @@ function Display() {
       <text x={DISPLAY.x + DISPLAY.w / 2} y={DISPLAY.y + DISPLAY.h / 2} dy="0.35em">
         {digits}
       </text>
-      <text
-        className="display-legend"
-        x={DISPLAY.x + DISPLAY.w / 2}
-        y={DISPLAY.y + DISPLAY.h + 22}
-      >
+      <text className="display-legend" x={DISPLAY.x + DISPLAY.w / 2} y={DISPLAY.y + DISPLAY.h + 22}>
         GROUP|BANK|PRGM
       </text>
     </g>
@@ -93,11 +90,16 @@ function Wheel({ wheel }: { wheel: (typeof WHEELS)['pitch'] }) {
   )
 }
 
-export function Panel() {
+export function Panel({ compact = false }: { compact?: boolean }) {
+  // Hiding the keyboard crops the viewBox and the chassis rather than just hiding elements, so
+  // the panel scales up to fill the space instead of leaving a wide empty band.
+  const height = compact ? COMPACT.height : PANEL.height
+  const chassisHeight = compact ? COMPACT.chassisHeight : CHASSIS.h
+
   return (
     <svg
       className="prophet-panel"
-      viewBox={`0 0 ${PANEL.width} ${PANEL.height}`}
+      viewBox={`0 0 ${PANEL.width} ${height}`}
       preserveAspectRatio="xMidYMid meet"
       role="group"
       aria-label="Prophet-10 front panel"
@@ -110,7 +112,7 @@ export function Panel() {
         x={CHASSIS.x}
         y={CHASSIS.y}
         width={CHASSIS.w}
-        height={CHASSIS.h}
+        height={chassisHeight}
         rx={16}
       />
       <rect
@@ -118,19 +120,12 @@ export function Panel() {
         x={CHASSIS.x}
         y={CHASSIS.y}
         width={CHASSIS.w}
-        height={CHASSIS.h}
+        height={chassisHeight}
         rx={16}
       />
 
       {/* Faceplate */}
-      <rect
-        className="plate"
-        x={PLATE.x}
-        y={PLATE.y}
-        width={PLATE.w}
-        height={PLATE.h}
-        rx={10}
-      />
+      <rect className="plate" x={PLATE.x} y={PLATE.y} width={PLATE.w} height={PLATE.h} rx={10} />
       <rect
         className="plate-texture"
         x={PLATE.x}
@@ -170,23 +165,31 @@ export function Panel() {
         <Switch key={s.param} spec={s} />
       ))}
 
-      {/* Nameplate */}
-      <g className="nameplate">
-        <rect
-          x={LOGO_PLATE.x}
-          y={LOGO_PLATE.y}
-          width={LOGO_PLATE.w}
-          height={LOGO_PLATE.h}
-          rx={8}
-        />
-        <text x={LOGO_PLATE.x + LOGO_PLATE.w / 2} y={LOGO_PLATE.y + LOGO_PLATE.h / 2} dy="0.35em">
-          prophet~10
-        </text>
-      </g>
+      {!compact && (
+        <>
+          {/* Nameplate */}
+          <g className="nameplate">
+            <rect
+              x={LOGO_PLATE.x}
+              y={LOGO_PLATE.y}
+              width={LOGO_PLATE.w}
+              height={LOGO_PLATE.h}
+              rx={8}
+            />
+            <text
+              x={LOGO_PLATE.x + LOGO_PLATE.w / 2}
+              y={LOGO_PLATE.y + LOGO_PLATE.h / 2}
+              dy="0.35em"
+            >
+              prophet~10
+            </text>
+          </g>
 
-      <Wheel wheel={WHEELS.pitch} />
-      <Wheel wheel={WHEELS.mod} />
-      <Keyboard />
+          <Wheel wheel={WHEELS.pitch} />
+          <Wheel wheel={WHEELS.mod} />
+          <Keyboard />
+        </>
+      )}
     </svg>
   )
 }

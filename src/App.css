@@ -24,15 +24,20 @@
 .stage {
   flex: 1;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 20px;
   min-width: 0;
   overflow: auto;
 }
 
+/* Fill the stage up to a sensible cap, centred, rather than shrinking to intrinsic width. */
 .stage > svg {
+  width: 100%;
   max-width: 2100px;
+  margin: 0 auto;
 }
 
 /* ---- Toolbar ---- */
@@ -392,4 +397,167 @@ button.entry {
   accent-color: #c25a38;
   cursor: pointer;
   margin: 0;
+}
+
+/* ---- MIDI bindings ---- */
+
+.bindings {
+  width: 400px;
+  flex: 0 0 400px;
+  display: flex;
+  flex-direction: column;
+  background: #16131a;
+  border-left: 1px solid #000;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+}
+.bindings button {
+  background: linear-gradient(#33373f, #24272d);
+  border: 1px solid #454a54;
+  border-radius: 5px;
+  color: #dcd8ce;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 11px;
+}
+.bindings button.icon,
+.bindings button.link {
+  background: none;
+  border: none;
+  padding: 3px 4px;
+  color: #8b929d;
+  font-size: 11px;
+}
+.bindings button.icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.bindings button.link:hover {
+  color: #d3cfc5;
+  text-decoration: underline;
+}
+.bindings button.link.danger:hover {
+  color: #e0674a;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 18px;
+  color: #6f7580;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.steps li.active {
+  color: #e0b880;
+  font-weight: 600;
+}
+.steps li.done {
+  color: #5c626b;
+  text-decoration: line-through;
+}
+
+.listening,
+.captured,
+.hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  border-radius: 5px;
+  padding: 8px 10px;
+}
+.listening {
+  background: #2a1d12;
+  border: 1px solid #5c3d1d;
+  color: #e0b880;
+}
+.captured {
+  background: #14251b;
+  border: 1px solid #2b5138;
+  color: #86d3a3;
+}
+.hint {
+  background: #1a1c22;
+  border: 1px solid #2b2f36;
+  color: #8b929d;
+}
+
+.binding-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.binding-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 14px;
+  border-bottom: 1px solid #1e1a24;
+}
+.binding-list li:hover {
+  background: #1e1a26;
+}
+.binding-control {
+  flex: 1;
+  color: #cfcbc2;
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-source {
+  color: #b8724a;
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  text-align: right;
+}
+.binding-source em {
+  color: #5f666f;
+  font-size: 10px;
+  font-style: normal;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bind-mode affordances on the panel itself. */
+.prophet-panel .bind-ring {
+  fill: none;
+  stroke: #6f7580;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+.prophet-panel .bound .bind-ring {
+  stroke: #46d17f;
+  stroke-dasharray: none;
+}
+.prophet-panel .bind-selected .bind-ring {
+  stroke: #ffa04a;
+  stroke-width: 3.5;
+  stroke-dasharray: none;
+}
+.prophet-panel .bindable {
+  cursor: crosshair;
+}
+
+/* ---- Keyboard hint ---- */
+
+.keyboard-hint {
+  color: #5c626b;
+  font-size: 11px;
+  margin: 0;
+  text-align: center;
+}
+.keyboard-hint kbd {
+  background: #22252b;
+  border: 1px solid #363b44;
+  border-radius: 3px;
+  color: #9aa1ac;
+  font-family: inherit;
+  font-size: 10px;
+  padding: 1px 4px;
 }

@@ -7,10 +7,14 @@
  * coordinate space means the layout can always be re-derived from, and diffed against, the sheet.
  */
 
+import { BY_ID } from '../domain/parameters'
 import type { PanelAction } from '../state/actions'
 
 export const PANEL = { width: 2653, height: 1137 }
 export const CHASSIS = { x: 15, y: 34, w: 2618, h: 1085 }
+
+/** With the keyboard hidden the chassis stops just below the faceplate. */
+export const COMPACT = { height: 617, chassisHeight: 565 }
 export const PLATE = { x: 57, y: 74, w: 2534, h: 485 }
 
 /** Knob drawing metrics, measured off the sheet. */
@@ -288,6 +292,23 @@ export const SWITCHES: SwitchLayout[] = [
   })),
   { param: 'ui:globals', x: 2001, y: ROW3, label: 'GLOBALS', leds: 2 },
 ]
+
+/**
+ * Human-readable name for any control id, used by the bindings list. Built from the panel legends
+ * so it reads the way the faceplate does, qualified by section for the reused ones.
+ */
+const CONTROL_LABELS = new Map<string, string>()
+for (const knob of KNOBS) CONTROL_LABELS.set(knob.param, knob.label)
+for (const sw of SWITCHES) {
+  if (sw.label) CONTROL_LABELS.set(sw.param, sw.label.replace('\n', ' '))
+}
+
+export function controlDisplayName(id: string): string {
+  const fromLayout = CONTROL_LABELS.get(id)
+  const domain = BY_ID.get(id)
+  if (domain) return accessibleName(domain.section, fromLayout ?? domain.name)
+  return fromLayout ?? id.replace(/^ui:/, '')
+}
 
 /** The bracketed group legends printed under runs of controls. */
 export const BRACKETS: BracketLayout[] = [

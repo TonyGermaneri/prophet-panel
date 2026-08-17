@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
-import { performance } from '../state/performance'
+import { notes } from '../state/notes'
 import { KEYBOARD } from './layout'
 
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -35,22 +35,15 @@ function buildKeys(): Key[] {
 const KEYS = buildKeys()
 
 export function Keyboard() {
-  const [held, setHeld] = useState<ReadonlySet<number>>(new Set())
+  // Shared with the computer keyboard, so both light the same keys.
+  const held = useSyncExternalStore(
+    (fn) => notes.subscribe(fn),
+    () => notes.held,
+    () => notes.held,
+  )
 
-  const press = (note: number) => {
-    setHeld((prev) => new Set(prev).add(note))
-    performance.noteOn(note, 100)
-  }
-
-  const release = (note: number) => {
-    setHeld((prev) => {
-      if (!prev.has(note)) return prev
-      const next = new Set(prev)
-      next.delete(note)
-      return next
-    })
-    performance.noteOff(note)
-  }
+  const press = (note: number) => notes.noteOn(note, 100)
+  const release = (note: number) => notes.noteOff(note)
 
   const keyProps = (note: number) => ({
     onPointerDown: (e: React.PointerEvent) => {

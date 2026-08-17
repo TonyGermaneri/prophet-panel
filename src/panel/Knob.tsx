@@ -3,6 +3,7 @@ import { useCallback, useRef } from 'react'
 import { BY_ID } from '../domain/parameters'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
+import { useBindings } from '../ui/useBindings'
 import { accessibleName, KNOB, type KnobLayout } from './layout'
 
 const { radius: R, tickInner, tickOuter, numberRadius, sweep } = KNOB
@@ -34,22 +35,30 @@ export function Knob({ spec }: { spec: KnobLayout }) {
   const [value, setValue] = useParam(spec.param)
   const { min, max } = controlRange(spec.param)
   const drag = useRef<{ y: number; value: number } | null>(null)
+  const bind = useBindings()
 
   const commit = useCallback(
     (next: number) => {
+      // Bind mode is for selecting controls, not moving them — including via wheel and keys.
+      if (bind.active) return
       if (spec.detents) {
         const step = (max - min) / (spec.detents - 1)
         next = min + Math.round((next - min) / step) * step
       }
       setValue(next)
     },
-    [setValue, spec.detents, min, max],
+    [setValue, spec.detents, min, max, bind.active],
   )
 
   const onPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault()
+    // In bind mode a click selects the control to be learned rather than operating it.
+    if (bind.active) {
+      bind.select(bind.selected === spec.param ? null : spec.param)
+      return
+    }
     ;(e.target as Element).setPointerCapture(e.pointerId)
     drag.current = { y: e.clientY, value }
-    e.preventDefault()
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -89,7 +98,14 @@ export function Knob({ spec }: { spec: KnobLayout }) {
 
   return (
     <g
-      className="knob"
+      className={[
+        'knob',
+        bind.active ? 'bindable' : '',
+        bind.selected === spec.param ? 'bind-selected' : '',
+        bind.active && bind.bindingFor(spec.param) ? 'bound' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       transform={`translate(${spec.x},${spec.y})`}
       role="slider"
       tabIndex={0}
@@ -117,6 +133,8 @@ export function Knob({ spec }: { spec: KnobLayout }) {
           )
         })}
       </g>
+
+      {bind.active && <circle className="bind-ring" r={R + 7} />}
 
       <ellipse className="knob-shadow" cx={1.5} cy={4} rx={R * 1.02} ry={R * 0.98} />
 

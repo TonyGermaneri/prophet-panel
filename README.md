@@ -20,7 +20,13 @@ the dev server works without TLS.
   Import and export `.syx`, save the current panel state, send a patch to the synth, or pull
   programs off the instrument.
 - **MIDI** — panel edits stream out as NRPN; hardware knob moves come back and move the on-screen
-  control. Sysex handles whole-patch transfer.
+  control. Sysex handles whole-patch transfer. Port choices are remembered between sessions.
+- **Play from the computer keyboard** — `A`–`K` for white keys, `W`–`U` for sharps, `Z`/`X` to
+  shift octave and `C`/`V` velocity. **Hide keyboard** collapses the keys, wheels and nameplate.
+- **MIDI Bind** — drive the panel (and therefore the synth) from any other controller. Click
+  **MIDI Bind**, click a knob or switch to select it, then move a control on your controller to
+  bind the two. The synth's own input is excluded so its knobs cannot be captured by accident.
+  Bindings are listed on the right, can be removed individually or cleared, and persist.
 
 To drive the synth, set **Param Xmit** and **Param Rcv** to **NRPN** in its globals. Without that
 the panel looks connected but nothing moves.

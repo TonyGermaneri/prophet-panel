@@ -4,6 +4,7 @@ import { BY_ID } from '../domain/parameters'
 import { dispatchAction } from '../state/actions'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
+import { useBindings } from '../ui/useBindings'
 import { accessibleName, SWITCH, type SwitchIcon, type SwitchLayout } from './layout'
 
 const { h: H } = SWITCH
@@ -42,12 +43,18 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
   const [bitB, setBitB] = useParam(spec.bits?.[1] ?? spec.param)
   const [plain, setPlain] = useParam(spec.param)
   const [flash, setFlash] = useState(false)
+  const bind = useBindings()
 
   const { min, max } = controlRange(spec.bits?.[0] ?? spec.param)
   const value = spec.bits ? (bitA ? 1 : 0) | (bitB ? 2 : 0) : plain
   const range = spec.bits ? { min: 0, max: (1 << leds) - 1 } : { min, max }
 
   const advance = () => {
+    // In bind mode a click selects the control to be learned rather than operating it.
+    if (bind.active) {
+      bind.select(bind.selected === spec.param ? null : spec.param)
+      return
+    }
     const next = value >= range.max ? range.min : value + 1
     if (spec.bits) {
       setBitA(next & 1)
@@ -81,7 +88,14 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
 
   return (
     <g
-      className="switch"
+      className={[
+        'switch',
+        bind.active ? 'bindable' : '',
+        bind.selected === spec.param ? 'bind-selected' : '',
+        bind.active && bind.bindingFor(spec.param) ? 'bound' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       transform={`translate(${spec.x},${spec.y})`}
       role="button"
       tabIndex={0}
@@ -110,6 +124,17 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
             {spec.ledLabels[1]}
           </text>
         </>
+      )}
+
+      {bind.active && (
+        <rect
+          className="bind-ring"
+          x={-W / 2 - 6}
+          y={-H / 2 - 6}
+          width={W + 12}
+          height={H + 12}
+          rx={6}
+        />
       )}
 
       {/* Recessed housing the cap sits in. */}
