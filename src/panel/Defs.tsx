@@ -17,23 +17,29 @@ export function Defs() {
         <stop offset="100%" stopColor="#835747" />
       </linearGradient>
 
+      {/*
+        Broad figure. The low vertical frequency is what makes the bands thick — at a high one the
+        same filter produces hairlines rather than grain. The alpha matrix multiplies the noise's
+        red channel well past 1 before subtracting, which clips the soft gradient into bands with
+        definite edges instead of a wash.
+      */}
       <filter id="grainA" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.011 0.75" numOctaves="4" seed="11" />
-        {/* Take the noise's red channel as alpha; the offset thins the streaks out. */}
+        <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.055" numOctaves="2" seed="11" />
         <feColorMatrix
           type="matrix"
-          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -0.34"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  4.6 0 0 0 -1.95"
           result="mask"
         />
         <feFlood floodColor="#7d564c" result="ink" />
         <feComposite in="ink" in2="mask" operator="in" />
       </filter>
 
+      {/* Secondary figure: narrower, darker streaks running through the broad bands. */}
       <filter id="grainB" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.02 1.6" numOctaves="3" seed="29" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.115" numOctaves="2" seed="29" />
         <feColorMatrix
           type="matrix"
-          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -0.42"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  5.2 0 0 0 -2.7"
           result="mask"
         />
         <feFlood floodColor="#814e3d" result="ink" />

@@ -34,7 +34,7 @@
 .chassis-grain-b {
   fill: #000;
   filter: url(#grainB);
-  opacity: 0.75;
+  opacity: 0.9;
 }
 
 .chassis-vignette {
