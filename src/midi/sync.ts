@@ -49,6 +49,7 @@ export class SynthSync {
   private receiver: NrpnReceiver
   private teardown: (() => void)[] = []
   private bulkFetching = false
+  private pendingGroup: number | null = null
 
   constructor(
     private readonly connection: MidiConnection,
@@ -142,6 +143,22 @@ export class SynthSync {
       }
       return
     }
+
+    // Selecting a patch on the instrument sends a program change, not a dump — the panel has to
+    // notice the slot moved and go ask for the new sound itself.
+    const status = data[0] & 0xf0
+    if (status === 0xc0) {
+      this.store.setSlot(this.pendingGroup ?? this.store.group, data[1])
+      this.pendingGroup = null
+      this.requestEditBuffer()
+      return
+    }
+    if (status === 0xb0 && data[1] === CC.BankSelect) {
+      // Bank select precedes the program change; hold it until the program number arrives.
+      this.pendingGroup = Math.max(0, data[2] - 1)
+      return
+    }
+
     this.receiver.feed(data)
   }
 
@@ -153,11 +170,11 @@ export class SynthSync {
   // ---- requests ----
 
   requestEditBuffer(): void {
-    this.connection.send(requestEditBuffer(this.connection.deviceId))
+    this.connection.sendRequest((id) => requestEditBuffer(id))
   }
 
   requestProgram(group: number, program: number): void {
-    this.connection.send(requestProgram(this.connection.deviceId, group, program))
+    this.connection.sendRequest((id) => requestProgram(id, group, program))
   }
 
   /** Send the current panel state to the synth's edit buffer, for audition without storing it. */

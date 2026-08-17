@@ -10,6 +10,7 @@ import {
   decodeMessage,
   deviceInquiry,
   isKnownDeviceId,
+  KNOWN_DEVICE_IDS,
   SEQUENTIAL_ID,
   SYSEX_START,
 } from '../domain/sysex'
@@ -53,7 +54,15 @@ export class MidiConnection {
    */
   deviceId = DEFAULT_DEVICE_ID
 
+  /**
+   * True once the instrument has actually answered on `deviceId`. Until then requests are sent to
+   * every ID in the family: a request addressed to the wrong ID is silently ignored, which would
+   * otherwise leave the ID undiscoverable — the reply we need to learn it can never arrive.
+   */
+  deviceIdConfirmed = false
+
   private handlers = new Set<MessageHandler>()
+  private sentHandlers = new Set<MessageHandler>()
   private stateHandlers = new Set<() => void>()
 
   async connect(): Promise<ConnectionState> {
@@ -117,18 +126,41 @@ export class MidiConnection {
     // Adopt the device ID from any Sequential sysex the instrument sends, so a Prophet-10 that
     // uses a different ID than the factory files is handled without configuration.
     if (data[0] === SYSEX_START && data[1] === SEQUENTIAL_ID && isKnownDeviceId(data[2])) {
-      this.deviceId = data[2]
+      if (this.deviceId !== data[2] || !this.deviceIdConfirmed) {
+        this.deviceId = data[2]
+        this.deviceIdConfirmed = true
+        this.notify()
+      }
     }
     for (const fn of this.handlers) fn(data)
   }
 
   send(data: Uint8Array | number[]): void {
-    this.output?.send(Array.from(data))
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+    this.output?.send(Array.from(bytes))
+    for (const fn of this.sentHandlers) fn(bytes)
+  }
+
+  /**
+   * Send a Sequential request once per candidate device ID, until one is confirmed. The synth
+   * ignores requests addressed to another ID, so the extra messages are harmless.
+   */
+  sendRequest(build: (deviceId: number) => Uint8Array): void {
+    if (this.deviceIdConfirmed) {
+      this.send(build(this.deviceId))
+      return
+    }
+    for (const id of KNOWN_DEVICE_IDS) this.send(build(id))
   }
 
   onMessage(fn: MessageHandler): () => void {
     this.handlers.add(fn)
     return () => this.handlers.delete(fn)
+  }
+
+  onSent(fn: MessageHandler): () => void {
+    this.sentHandlers.add(fn)
+    return () => this.sentHandlers.delete(fn)
   }
 
   onStateChange(fn: () => void): () => void {
@@ -165,7 +197,10 @@ export class MidiConnection {
           model: MODEL_NAMES[decoded.familyId & 0x7f] ?? `Unknown (0x${decoded.familyId.toString(16)})`,
         }
         this.device = info
-        if (isKnownDeviceId(info.deviceId)) this.deviceId = info.deviceId
+        if (isKnownDeviceId(info.deviceId)) {
+          this.deviceId = info.deviceId
+          this.deviceIdConfirmed = true
+        }
         this.notify()
         resolve(info)
       })

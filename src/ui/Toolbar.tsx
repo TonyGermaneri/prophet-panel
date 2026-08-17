@@ -13,7 +13,13 @@ const STATE_TEXT: Record<string, string> = {
   ready: 'Connected',
 }
 
-export function Toolbar({ onToggleLibrary }: { onToggleLibrary: () => void }) {
+export function Toolbar({
+  onToggleLibrary,
+  onToggleMonitor,
+}: {
+  onToggleLibrary: () => void
+  onToggleMonitor: () => void
+}) {
   const midi = useMidiStatus()
   const meta = usePatchMeta()
   const [busy, setBusy] = useState(false)
@@ -98,6 +104,7 @@ export function Toolbar({ onToggleLibrary }: { onToggleLibrary: () => void }) {
       </div>
 
       <div className="toolbar-group">
+        <button onClick={onToggleMonitor}>Monitor</button>
         <button onClick={onToggleLibrary}>Library</button>
       </div>
     </header>

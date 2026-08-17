@@ -89,7 +89,8 @@
 }
 
 .toolbar button,
-.library button {
+.library button,
+.monitor button {
   background: linear-gradient(#33373f, #24272d);
   border: 1px solid #454a54;
   border-radius: 5px;
@@ -99,11 +100,13 @@
   padding: 6px 11px;
 }
 .toolbar button:hover:not(:disabled),
-.library button:hover:not(:disabled) {
+.library button:hover:not(:disabled),
+.monitor button:hover:not(:disabled) {
   background: linear-gradient(#3d424b, #2b2f36);
 }
 .toolbar button:disabled,
-.library button:disabled {
+.library button:disabled,
+.monitor button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -166,7 +169,8 @@
   text-transform: uppercase;
   color: #9aa1ac;
 }
-.library button.icon {
+.library button.icon,
+.monitor button.icon {
   background: none;
   border: none;
   color: #8b929d;
@@ -286,4 +290,76 @@ button.entry {
 .empty {
   color: #5c626b;
   padding: 18px 14px;
+}
+
+/* ---- MIDI monitor ---- */
+
+.monitor {
+  width: 470px;
+  flex: 0 0 470px;
+  display: flex;
+  flex-direction: column;
+  background: #101216;
+  border-left: 1px solid #000;
+  overflow: hidden;
+}
+
+.diagnosis p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  border-radius: 5px;
+  padding: 8px 10px;
+}
+.diagnosis .warn {
+  background: #2a1d12;
+  border: 1px solid #5c3d1d;
+  color: #e0b880;
+}
+.diagnosis .ok {
+  background: #14251b;
+  border: 1px solid #2b5138;
+  color: #86d3a3;
+}
+.diagnosis code {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+
+.monitor-list {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 11px;
+}
+.monitor-list table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.monitor-list td {
+  padding: 3px 6px;
+  vertical-align: top;
+  border-bottom: 1px solid #191c21;
+  white-space: nowrap;
+}
+.monitor-list tr.in .dir {
+  color: #6fd39a;
+}
+.monitor-list tr.out .dir {
+  color: #d99a5e;
+}
+.monitor-list .kind {
+  color: #7b828d;
+  width: 62px;
+}
+.monitor-list .summary {
+  color: #cfcbc2;
+  white-space: normal;
+}
+.monitor-list .bytes {
+  color: #5f666f;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 10px;
+  text-align: right;
 }

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 
 import { bankOf } from './domain/patch'
 import { LibraryPanel } from './library/LibraryPanel'
-import { sync } from './midi'
+import { connection, sync } from './midi'
+import { monitor } from './midi/monitor'
 import { Panel } from './panel/Panel'
 import { registerActions } from './state/actions'
 import { store } from './state/store'
+import { MonitorPanel } from './ui/MonitorPanel'
 import { Toolbar } from './ui/Toolbar'
 import './App.css'
 
@@ -18,9 +20,11 @@ function goTo(group: number, program: number): void {
 
 export function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [monitorOpen, setMonitorOpen] = useState(false)
 
   useEffect(() => {
     sync.start()
+    monitor.attach(connection)
     const unregister = registerActions({
       // Program buttons pick one of eight within the current bank; bank and group step onward
       // and wrap, matching how the buttons behave on the instrument.
@@ -36,17 +40,22 @@ export function App() {
     })
     return () => {
       unregister()
+      monitor.detach()
       sync.stop()
     }
   }, [])
 
   return (
-    <div className={libraryOpen ? 'app library-open' : 'app'}>
-      <Toolbar onToggleLibrary={() => setLibraryOpen((v) => !v)} />
+    <div className="app">
+      <Toolbar
+        onToggleLibrary={() => setLibraryOpen((v) => !v)}
+        onToggleMonitor={() => setMonitorOpen((v) => !v)}
+      />
       <div className="body">
         <main className="stage">
           <Panel />
         </main>
+        {monitorOpen && <MonitorPanel onClose={() => setMonitorOpen(false)} />}
         {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
       </div>
     </div>

@@ -25,6 +25,21 @@ the dev server works without TLS.
 To drive the synth, set **Param Xmit** and **Param Rcv** to **NRPN** in its globals. Without that
 the panel looks connected but nothing moves.
 
+## Troubleshooting
+
+Open **Monitor** in the toolbar to see MIDI traffic in both directions with decoded bytes. It also
+reports what it can infer from what has arrived.
+
+**Knobs work but patch transfer doesn't.** The Prophet has a `MIDI SysEx` global that is separate
+from `MIDI Out`, so parameter messages and sysex travel independently. Over a 5-pin DIN connection
+(e.g. through an audio interface's MIDI ports) it must be set to `MIDI`; set it to `USB` only when
+the synth is plugged in by USB cable. Reach it with `GLOBALS`, then program button **6**, then the
+`GROUP SELECT` / `BANK SELECT` buttons to change the value.
+
+**Selecting a patch on the synth.** The instrument sends a program change, not a dump. The panel
+follows the slot and then requests the new edit buffer — which needs sysex working in both
+directions.
+
 ## Sysex format notes
 
 The official [Prophet-5 MIDI Implementation
