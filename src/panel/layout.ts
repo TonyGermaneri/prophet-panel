@@ -105,6 +105,18 @@ export const SECTIONS: SectionLayout[] = [
   { id: 'programmer', title: 'PROGRAMMER', box: { x: 846, y: 394, w: 1190, h: 131 } },
 ]
 
+const SECTION_TITLES = new Map(SECTIONS.map((s) => [s.id, s.title]))
+
+/**
+ * Accessible name for a control. The faceplate reuses short legends — three knobs are printed
+ * "FREQUENCY" and two "ATTACK" — so the section has to qualify them or they are indistinguishable
+ * to anyone not looking at the panel.
+ */
+export function accessibleName(section: string | undefined, label: string): string {
+  const title = section ? SECTION_TITLES.get(section) : undefined
+  return title ? `${title} ${label}` : label
+}
+
 const ROW1 = 177
 const ROW2 = 316
 const ROW3 = 455

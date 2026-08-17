@@ -1,8 +1,9 @@
 import { useCallback, useRef } from 'react'
 
+import { BY_ID } from '../domain/parameters'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
-import { KNOB, type KnobLayout } from './layout'
+import { accessibleName, KNOB, type KnobLayout } from './layout'
 
 const { radius: R, tickInner, tickOuter, numberRadius, sweep } = KNOB
 const HALF_SWEEP = sweep / 2
@@ -84,6 +85,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
 
   const angle = angleFor(value, min, max)
   const labels = tickLabels(spec.scale)
+  const name = accessibleName(BY_ID.get(spec.param)?.section, spec.label)
 
   return (
     <g
@@ -91,7 +93,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
       transform={`translate(${spec.x},${spec.y})`}
       role="slider"
       tabIndex={0}
-      aria-label={spec.label}
+      aria-label={name}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={value}
@@ -165,7 +167,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
         {spec.label}
       </text>
 
-      <title>{`${spec.label}: ${value}`}</title>
+      <title>{`${name}: ${value}`}</title>
     </g>
   )
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 
+import { BY_ID } from '../domain/parameters'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
-import { SWITCH, type SwitchIcon, type SwitchLayout } from './layout'
+import { accessibleName, SWITCH, type SwitchIcon, type SwitchLayout } from './layout'
 
 const { h: H } = SWITCH
 /** Two-LED caps (VELOCITY, AFTERTOUCH, FILTER REV) sit in a wider bezel on the instrument. */
@@ -69,13 +70,20 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
   const litValue = spec.momentary && flash ? range.max : value
   const W = widthFor(leds)
 
+  // Shape switches carry only a waveform glyph, so their accessible name has to come from the
+  // parameter table rather than the (absent) printed legend.
+  const domain = BY_ID.get(spec.bits?.[0] ?? spec.param)
+  const name = domain
+    ? accessibleName(domain.section, spec.bits ? spec.label ?? domain.name : domain.name)
+    : (spec.label?.replace('\n', ' ') ?? spec.param)
+
   return (
     <g
       className="switch"
       transform={`translate(${spec.x},${spec.y})`}
       role="button"
       tabIndex={0}
-      aria-label={spec.label ?? spec.param}
+      aria-label={name}
       aria-pressed={value > range.min}
       onKeyDown={onKeyDown}
     >
@@ -154,7 +162,7 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
           </text>
         ))}
 
-      <title>{spec.label ?? spec.param}</title>
+      <title>{name}</title>
     </g>
   )
 }
