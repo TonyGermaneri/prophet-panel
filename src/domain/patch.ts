@@ -67,6 +67,36 @@ export function writeName(payload: Uint8Array, name: string): void {
   }
 }
 
+/**
+ * Program memory: ten groups of forty, but the instrument's readout only ever shows a group of
+ * 1-5. The FACTORY button selects which half of memory those five refer to — groups 0-4 are the
+ * user half, 5-9 the factory half. Counting the display 1-10 would drift out of step with the
+ * hardware the moment GROUP SELECT was used.
+ */
+export const GROUP_COUNT = 10
+export const GROUPS_PER_HALF = 5
+export const PROGRAMS_PER_GROUP = 40
+
+/** The group as the instrument prints it: 1-5 within the current half. */
+export function displayGroup(group: number): number {
+  return (group % GROUPS_PER_HALF) + 1
+}
+
+export function isFactoryGroup(group: number): boolean {
+  return group >= GROUPS_PER_HALF
+}
+
+/** The same position in the other half of memory, which is what FACTORY switches between. */
+export function toggleFactoryGroup(group: number): number {
+  return (group + GROUPS_PER_HALF) % GROUP_COUNT
+}
+
+/** GROUP SELECT steps within the current half and wraps at five, never crossing into the other. */
+export function nextGroupInHalf(group: number): number {
+  const half = Math.floor(group / GROUPS_PER_HALF) * GROUPS_PER_HALF
+  return half + ((group % GROUPS_PER_HALF) + 1) % GROUPS_PER_HALF
+}
+
 /** Banks are eight programs each; program 0-39 maps to bank 1-5, program 1-8. */
 export function bankOf(program: number): number {
   return Math.floor(program / 8) + 1

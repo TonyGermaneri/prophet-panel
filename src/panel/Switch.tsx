@@ -61,6 +61,11 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
       setFlash(true)
       window.setTimeout(() => setFlash(false), 140)
       if (spec.action) dispatchAction(spec.action)
+    } else if (spec.action) {
+      // A latching cap that carries an action reports state it does not own — FACTORY lights
+      // because of which half of memory is selected, not because it was pressed. Writing the value
+      // here as well would let the lamp drift away from the slot it is meant to describe.
+      dispatchAction(spec.action)
     } else {
       setPlain(next)
     }

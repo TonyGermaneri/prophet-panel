@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 
-import { bankOf } from './domain/patch'
+import {
+  bankOf,
+  nextGroupInHalf,
+  PROGRAMS_PER_GROUP,
+  toggleFactoryGroup,
+} from './domain/patch'
 import { LibraryPanel } from './library/LibraryPanel'
 import { library } from './library/libraryStore'
 import { connection, sync } from './midi'
@@ -70,8 +75,12 @@ export function App() {
           () => goTo(store.group, (bankOf(store.program) - 1) * 8 + i),
         ]),
       ),
-      bankSelect: () => goTo(store.group, (store.program + 8) % 40),
-      groupSelect: () => goTo((store.group + 1) % 10, store.program),
+      bankSelect: () => goTo(store.group, (store.program + 8) % PROGRAMS_PER_GROUP),
+      // GROUP SELECT counts 1-5 and wraps, exactly as the instrument's display does; reaching the
+      // other five groups is FACTORY's job, not a sixth press. Counting 1-10 here would leave the
+      // panel a group ahead of the hardware.
+      groupSelect: () => goTo(nextGroupInHalf(store.group), store.program),
+      factory: () => goTo(toggleFactoryGroup(store.group), store.program),
       record: () => sync.writeProgram(store.snapshot()),
     })
 

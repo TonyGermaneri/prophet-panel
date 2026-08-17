@@ -175,7 +175,7 @@ export const DESKTOP_SWITCHES: SwitchLayout[] = [
   { param: 'unison', x: 417, y: 941, label: 'UNISON' },
   { param: 'ui:preset', x: 606, y: 941, label: 'PRESET' },
   { param: 'ui:record', x: 769, y: 941, label: 'RECORD', momentary: true, action: 'record' },
-  { param: 'ui:factory', x: 939, y: 941, label: 'FACTORY' },
+  { param: 'ui:factory', x: 939, y: 941, label: 'FACTORY', action: 'factory' },
   {
     param: 'ui:groupSelect',
     x: 1042,

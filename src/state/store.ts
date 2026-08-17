@@ -14,18 +14,17 @@ import {
   clonePatch,
   emptyPayload,
   getParam,
+  GROUP_COUNT,
   initPatch,
+  isFactoryGroup,
   type Patch,
+  PROGRAMS_PER_GROUP,
   readName,
   setParam,
   writeName,
 } from '../domain/patch'
 
 export type ChangeSource = 'ui' | 'midi' | 'patch'
-
-/** The instrument's program memory: ten groups of five banks of eight. */
-export const GROUP_COUNT = 10
-export const PROGRAMS_PER_GROUP = 40
 
 export interface UiControl {
   id: string
@@ -150,6 +149,9 @@ export class PatchStore {
       group: Math.max(0, Math.min(GROUP_COUNT - 1, Math.round(group))),
       program: Math.max(0, Math.min(PROGRAMS_PER_GROUP - 1, Math.round(program))),
     }
+    // FACTORY is not an independent switch: it reports which half of memory the slot is in, so it
+    // follows the slot rather than being set separately. Source 'patch' keeps it off the wire.
+    this.set('ui:factory', isFactoryGroup(this.patch.group) ? 1 : 0, 'patch')
     this.notifyMeta()
   }
 

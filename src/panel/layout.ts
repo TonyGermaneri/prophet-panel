@@ -325,7 +325,7 @@ export const SWITCHES: SwitchLayout[] = [
   // Programmer
   { param: 'ui:preset', x: 879, y: ROW3, label: 'PRESET' },
   { param: 'ui:record', x: 983, y: ROW3, label: 'RECORD', momentary: true, action: 'record', cap: 'red' },
-  { param: 'ui:factory', x: 1088, y: ROW3, label: 'FACTORY', cap: 'grey' },
+  { param: 'ui:factory', x: 1088, y: ROW3, label: 'FACTORY', cap: 'grey', action: 'factory' },
   {
     param: 'ui:groupSelect',
     x: 1154,

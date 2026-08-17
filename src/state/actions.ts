@@ -1,7 +1,8 @@
 /**
- * Momentary panel buttons (program select, bank/group select, tune) act rather than hold a value,
- * so they dispatch a named action instead of writing to the patch store. Handlers are registered
- * by the app once MIDI is wired up, which keeps the panel components free of MIDI imports.
+ * Panel buttons that move the instrument rather than hold a value of their own (program select,
+ * bank/group select, factory, tune) dispatch a named action instead of writing to the patch store.
+ * Handlers are registered by the app once MIDI is wired up, which keeps the panel components free
+ * of MIDI imports.
  */
 
 export type PanelAction =
@@ -15,6 +16,7 @@ export type PanelAction =
   | 'program8'
   | 'bankSelect'
   | 'groupSelect'
+  | 'factory'
   | 'tune'
   | 'record'
 

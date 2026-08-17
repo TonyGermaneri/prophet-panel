@@ -20,7 +20,7 @@ import {
   WHEELS,
 } from './layout'
 import { usePatchMeta } from '../state/hooks'
-import { bankOf, programInBank } from '../domain/patch'
+import { bankOf, displayGroup, programInBank } from '../domain/patch'
 import './panel.css'
 
 /** Section outline with its legend breaking the top rule, as printed on the faceplate. */
@@ -63,7 +63,7 @@ function Bracket({ x1, x2, y, text }: (typeof BRACKETS)[number]) {
 /** Three-digit readout: group, bank, program. */
 function Display() {
   const { group, program } = usePatchMeta()
-  const digits = `${group + 1}${bankOf(program)}${programInBank(program)}`
+  const digits = `${displayGroup(group)}${bankOf(program)}${programInBank(program)}`
   return (
     <g className="display">
       <rect x={DISPLAY.x} y={DISPLAY.y} width={DISPLAY.w} height={DISPLAY.h} rx={5} />

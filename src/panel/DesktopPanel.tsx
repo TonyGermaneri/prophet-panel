@@ -1,4 +1,4 @@
-import { bankOf, programInBank } from '../domain/patch'
+import { bankOf, displayGroup, programInBank } from '../domain/patch'
 import { usePatchMeta } from '../state/hooks'
 import { Defs } from './Defs'
 import { Knob } from './Knob'
@@ -59,7 +59,7 @@ function Bracket({ x1, x2, y, text }: (typeof DESKTOP_BRACKETS)[number]) {
 
 function Display() {
   const { group, program } = usePatchMeta()
-  const digits = `${group + 1}${bankOf(program)}${programInBank(program)}`
+  const digits = `${displayGroup(group)}${bankOf(program)}${programInBank(program)}`
   return (
     <g className="display">
       <rect
