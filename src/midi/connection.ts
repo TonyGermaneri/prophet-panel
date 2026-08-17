@@ -305,10 +305,11 @@ export class MidiConnection {
           model: MODEL_NAMES[decoded.familyId & 0x7f] ?? `Unknown (0x${decoded.familyId.toString(16)})`,
         }
         this.device = info
-        if (isKnownDeviceId(info.deviceId)) {
-          this.deviceId = info.deviceId
-          this.deviceIdConfirmed = true
-        }
+        // The inquiry reply's family ID is a good guess at the sysex addressing ID but not proof:
+        // they are different fields and the docs disagree about both. Only a Sequential message
+        // actually sent by the instrument confirms which ID it answers on, so the fan-out stays
+        // on until then rather than locking onto a value that may be silently ignored.
+        if (isKnownDeviceId(info.deviceId) && !this.deviceIdConfirmed) this.deviceId = info.deviceId
         this.notify()
         resolve(info)
       })
