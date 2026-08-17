@@ -23,6 +23,7 @@ export function Toolbar({
   const midi = useMidiStatus()
   const meta = usePatchMeta()
   const [busy, setBusy] = useState(false)
+  const [follow, setFollow] = useState(sync.follow)
 
   const connect = async () => {
     setBusy(true)
@@ -90,6 +91,17 @@ export function Toolbar({
             <button onClick={() => connection.identify()}>Identify</button>
             <button onClick={() => sync.requestEditBuffer()}>Sync from synth</button>
             <button onClick={() => sync.sendEditBuffer()}>Send to synth</button>
+            <label className="toggle" title="Pull the synth's edit buffer when its program changes">
+              <input
+                type="checkbox"
+                checked={follow}
+                onChange={(e) => {
+                  sync.follow = e.target.checked
+                  setFollow(e.target.checked)
+                }}
+              />
+              Follow synth
+            </label>
           </>
         )}
       </div>

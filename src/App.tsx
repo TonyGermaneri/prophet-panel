@@ -11,11 +11,10 @@ import { MonitorPanel } from './ui/MonitorPanel'
 import { Toolbar } from './ui/Toolbar'
 import './App.css'
 
-/** Move to a slot, then ask the synth to follow. */
+/** Move to a slot; selectProgram sends the change and then pulls the synth's edit buffer back. */
 function goTo(group: number, program: number): void {
   store.setSlot(group, program)
   sync.selectProgram(group, program)
-  sync.requestEditBuffer()
 }
 
 export function App() {

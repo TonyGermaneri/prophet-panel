@@ -77,11 +77,22 @@ export class NrpnReceiver {
 
   constructor(private readonly emit: (event: NrpnEvent) => void) {}
 
-  /** Feed a raw MIDI message. Non-CC messages are ignored. */
+  /**
+   * Feed raw MIDI. Non-CC messages are ignored.
+   *
+   * A buffer may hold more than one control change: a driver is free to coalesce running-status
+   * traffic into a single event, and a whole four-message NRPN often arrives that way. Walking
+   * the buffer rather than reading only the first three bytes means those are not silently
+   * dropped down to their first message.
+   */
   feed(data: Uint8Array): void {
-    if ((data[0] & 0xf0) !== 0xb0 || data.length < 3) return
-    const [, controller, value] = data
+    for (let i = 0; i + 2 < data.length; i += 3) {
+      if ((data[i] & 0xf0) !== 0xb0) return
+      this.handleControlChange(data[i + 1], data[i + 2])
+    }
+  }
 
+  private handleControlChange(controller: number, value: number): void {
     switch (controller) {
       case CC.NrpnParamMsb:
         this.paramMsb = value

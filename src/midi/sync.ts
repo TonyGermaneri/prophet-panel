@@ -43,6 +43,23 @@ export interface SyncOptions {
   useCC?: boolean
 }
 
+/**
+ * Timers are taken from the global scope rather than `window` so the sync logic can be exercised
+ * under fake timers in a plain Node test, without a DOM.
+ */
+const scheduleFrame = (fn: () => void): number =>
+  typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame(fn)
+    : (setTimeout(fn, 16) as unknown as number)
+
+const cancelFrame = (id: number): void => {
+  if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id)
+  else clearTimeout(id as unknown as ReturnType<typeof setTimeout>)
+}
+
+const later = (fn: () => void, ms: number): number => setTimeout(fn, ms) as unknown as number
+const cancel = (id: number): void => clearTimeout(id as unknown as ReturnType<typeof setTimeout>)
+
 export class SynthSync {
   private pending = new Map<number, number>()
   private frame = 0
@@ -50,6 +67,15 @@ export class SynthSync {
   private teardown: (() => void)[] = []
   private bulkFetching = false
   private pendingGroup: number | null = null
+  private followTimer = 0
+  private retryTimer = 0
+  private awaitingDump = false
+
+  /**
+   * Follow program changes made on the instrument by pulling its edit buffer. Cheap — one small
+   * request and one dump per patch change — so it is on by default.
+   */
+  follow = true
 
   constructor(
     private readonly connection: MidiConnection,
@@ -76,8 +102,11 @@ export class SynthSync {
     for (const fn of this.teardown) fn()
     this.teardown = []
     this.store.onChange = null
-    if (this.frame) cancelAnimationFrame(this.frame)
+    if (this.frame) cancelFrame(this.frame)
     this.frame = 0
+    cancel(this.followTimer)
+    cancel(this.retryTimer)
+    this.awaitingDump = false
   }
 
   // ---- outbound ----
@@ -99,7 +128,7 @@ export class SynthSync {
 
   private scheduleFlush(): void {
     if (this.frame) return
-    this.frame = requestAnimationFrame(() => {
+    this.frame = scheduleFrame(() => {
       this.frame = 0
       this.flush()
     })
@@ -136,8 +165,10 @@ export class SynthSync {
       if (this.bulkFetching) return
       const decoded = decodeMessage(data)
       if (decoded?.kind === 'programData') {
+        this.awaitingDump = false
         this.store.loadPatch(patchFromPayload(decoded.payload, decoded.group, decoded.program))
       } else if (decoded?.kind === 'editBuffer') {
+        this.awaitingDump = false
         const patch = patchFromPayload(decoded.payload, this.store.group, this.store.program)
         this.store.loadPatch(patch)
       }
@@ -150,7 +181,7 @@ export class SynthSync {
     if (status === 0xc0) {
       this.store.setSlot(this.pendingGroup ?? this.store.group, data[1])
       this.pendingGroup = null
-      this.requestEditBuffer()
+      if (this.follow) this.pullEditBuffer()
       return
     }
     if (status === 0xb0 && data[1] === CC.BankSelect) {
@@ -160,6 +191,26 @@ export class SynthSync {
     }
 
     this.receiver.feed(data)
+  }
+
+  /**
+   * Ask for the edit buffer shortly after a program change, then once more if nothing came back.
+   *
+   * The delay matters: asking the instant the program change arrives can catch the synth
+   * mid-load, and it answers with the outgoing patch or not at all. The retry covers the case
+   * where the first request lands too early anyway.
+   */
+  private pullEditBuffer(): void {
+    cancel(this.followTimer)
+    cancel(this.retryTimer)
+    this.awaitingDump = true
+
+    this.followTimer = later(() => {
+      this.requestEditBuffer()
+      this.retryTimer = later(() => {
+        if (this.awaitingDump) this.requestEditBuffer()
+      }, 400)
+    }, 150)
   }
 
   private applyIncoming(nrpn: number, value: number): void {
@@ -192,6 +243,8 @@ export class SynthSync {
   selectProgram(group: number, program: number): void {
     this.connection.send(encodeCC(this.connection.channel, CC.BankSelect, group + 1))
     this.connection.send(encodeProgramChange(this.connection.channel, program))
+    // Same settle-then-ask path as a program change made on the instrument.
+    if (this.follow) this.pullEditBuffer()
   }
 
   /**
@@ -227,7 +280,7 @@ export class SynthSync {
 
   private awaitProgram(group: number, program: number, timeoutMs = 600): Promise<Patch | null> {
     return new Promise((resolve) => {
-      const timer = window.setTimeout(() => {
+      const timer = later(() => {
         stop()
         resolve(null)
       }, timeoutMs)
@@ -236,7 +289,7 @@ export class SynthSync {
         const decoded = decodeMessage(data)
         if (decoded?.kind !== 'programData') return
         if (decoded.group !== group || decoded.program !== program) return
-        window.clearTimeout(timer)
+        cancel(timer)
         stop()
         resolve(patchFromPayload(decoded.payload, decoded.group, decoded.program))
       })

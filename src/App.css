@@ -363,3 +363,18 @@ button.entry {
   font-size: 10px;
   text-align: right;
 }
+
+.toolbar .toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9aa1ac;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.toolbar .toggle input {
+  accent-color: #c25a38;
+  cursor: pointer;
+  margin: 0;
+}
