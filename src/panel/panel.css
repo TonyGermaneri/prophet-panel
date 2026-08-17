@@ -1,0 +1,286 @@
+/* Panel materials and printed legends. Geometry lives in layout.ts; this file is finish only. */
+
+.prophet-panel {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+  touch-action: none;
+  /* The faceplate legends are set in a condensed grotesque; without the narrow face the longer
+     legends ("ENVELOPE AMOUNT") collide with their neighbours exactly as they did on first draw. */
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-stretch: condensed;
+  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.55));
+}
+
+.prophet-panel text {
+  font-stretch: condensed;
+}
+
+/* ---- Chassis and faceplate ---- */
+
+.chassis {
+  fill: url(#walnut);
+}
+.chassis-grain {
+  fill: url(#walnut);
+  filter: url(#woodGrain);
+  opacity: 0.9;
+}
+
+.plate {
+  fill: url(#plate);
+  filter: url(#plateDrop);
+}
+.plate-texture {
+  fill: url(#plate);
+  filter: url(#plateTexture);
+  pointer-events: none;
+}
+
+/* ---- Section frames ---- */
+
+.section rect {
+  fill: none;
+  stroke: #17171a;
+  stroke-width: 4.5;
+}
+.section .section-title-mask {
+  fill: url(#plate);
+  stroke: none;
+}
+.section-title {
+  fill: #17171a;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+  text-anchor: middle;
+}
+
+.bracket line {
+  stroke: #17171a;
+  stroke-width: 3;
+}
+.bracket text {
+  fill: #17171a;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-anchor: middle;
+}
+
+.shift-label text {
+  fill: #17171a;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+/* ---- Knobs ---- */
+
+.knob {
+  cursor: ns-resize;
+  outline: none;
+}
+.knob:focus-visible .knob-face {
+  stroke: #4a90d9;
+  stroke-width: 2.5;
+}
+
+.knob-scale line {
+  stroke: #17171a;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.knob-scale text {
+  fill: #17171a;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.knob-shadow {
+  fill: rgba(0, 0, 0, 0.42);
+  filter: blur(3px);
+}
+.knob-skirt {
+  fill: url(#knobSkirt);
+}
+.knob-knurl line {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1.1;
+}
+.knob-face {
+  fill: url(#knobFace);
+}
+.knob-sheen {
+  fill: url(#knobSheen);
+  pointer-events: none;
+}
+.knob-pointer {
+  fill: #17171a;
+}
+.knob-hit {
+  fill: transparent;
+}
+
+.knob-label {
+  fill: #17171a;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.knob-end-label {
+  fill: #17171a;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+/* ---- Switches ---- */
+
+.switch {
+  cursor: pointer;
+  outline: none;
+}
+.switch:focus-visible .switch-bezel {
+  stroke: #4a90d9;
+  stroke-width: 3;
+}
+
+.switch-bezel {
+  fill: url(#bezel);
+  stroke: #0a0a0a;
+  stroke-width: 1.5;
+}
+.switch-cap-bevel {
+  fill: url(#capBevel);
+}
+.switch-cap-face {
+  fill: url(#capFace);
+}
+.switch-cap {
+  transition: transform 90ms ease-out;
+}
+.switch-cap.pressed {
+  transform: translateY(2px) scale(0.985);
+}
+.switch-hit {
+  fill: transparent;
+}
+
+.led-body {
+  fill: url(#ledOff);
+}
+.led.on .led-body {
+  fill: url(#ledOn);
+}
+.led-gloss {
+  fill: rgba(255, 255, 255, 0.35);
+}
+.led.on .led-gloss {
+  fill: rgba(255, 255, 255, 0.75);
+}
+.led-bloom {
+  fill: url(#ledBloom);
+  pointer-events: none;
+}
+
+.switch-label {
+  fill: #17171a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.switch-led-label {
+  fill: #17171a;
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.switch-icon {
+  fill: none;
+  stroke: #17171a;
+  stroke-width: 2.6;
+  stroke-linejoin: miter;
+}
+
+/* ---- Programmer readout ---- */
+
+.display rect {
+  fill: url(#displayGlass);
+  stroke: #0a0a0a;
+  stroke-width: 2;
+}
+.display text {
+  fill: #ff6b3d;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-anchor: middle;
+  font-family: 'DS-Digital', 'Courier New', monospace;
+  text-shadow: 0 0 8px rgba(255, 107, 61, 0.8);
+}
+.display .display-legend {
+  fill: #17171a;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+/* ---- Nameplate ---- */
+
+.nameplate rect {
+  fill: url(#nameplate);
+  stroke: #6e6e68;
+  stroke-width: 1.5;
+  filter: url(#softShadow);
+}
+.nameplate text {
+  fill: #2a2a28;
+  font-size: 38px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* ---- Wheels and keyboard ---- */
+
+.wheel rect {
+  fill: #1c1b1a;
+  stroke: #000;
+  stroke-width: 2;
+}
+.wheel line {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1.6;
+}
+.wheel-label {
+  fill: #f0ece2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-anchor: middle;
+}
+
+.keyboard .white-key {
+  fill: url(#whiteKey);
+  stroke: #8d8a82;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.keyboard .white-key.held {
+  fill: #cfc9b8;
+}
+.keyboard .black-key {
+  fill: url(#blackKey);
+  stroke: #000;
+  stroke-width: 1.2;
+  cursor: pointer;
+}
+.keyboard .black-key.held {
+  fill: #4a4a46;
+}
