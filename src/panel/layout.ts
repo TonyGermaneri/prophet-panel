@@ -2,7 +2,7 @@
  * Panel geometry, in the coordinate space of the reference patch sheet (2653 x 1137).
  *
  * These are not eyeballed. Knob centres came from Hough circle detection over
- * public/reference/panel.jpg (28 circles found, which is exactly the number of knobs on the
+ * reference/panel.jpg (28 circles found, which is exactly the number of knobs on the
  * instrument), switch and section boxes from contour detection. Keeping the reference's own
  * coordinate space means the layout can always be re-derived from, and diffed against, the sheet.
  */

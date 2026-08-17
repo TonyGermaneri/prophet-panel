@@ -46,6 +46,22 @@ the synth is plugged in by USB cable. Reach it with `GLOBALS`, then program butt
 follows the slot and then requests the new edit buffer — which needs sysex working in both
 directions.
 
+## Deploying
+
+Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`:
+<https://tonygermaneri.github.io/prophet-panel/>
+
+The workflow runs the test suite before building, so a broken sysex decode fails the deploy rather
+than shipping. One manual step is needed once, in the repository's **Settings → Pages**: set
+**Source** to **GitHub Actions**.
+
+Because Pages serves a project site from `/<repo>/`, builds carry that base path while the dev
+server stays at the root — see `PAGES_BASE` in `vite.config.ts`. Pages also has no server-side
+rewrite, so the build writes `404.html` alongside `index.html` and any path lands on the app.
+
+Note that the deployed site can render and edit patches but cannot reach a synth unless the browser
+supports Web MIDI: Chrome and Edge do, Safari and Firefox do not.
+
 ## Sysex format notes
 
 The official [Prophet-5 MIDI Implementation
@@ -86,7 +102,7 @@ src/midi/        Web MIDI transport, NRPN codec, store<->synth sync
 src/library/     IndexedDB store and the librarian UI
 src/state/       patch store and React bindings
 patches/factory/ the 120 Rev3.3 factory patches plus 3 bank files
-public/reference/panel.jpg   the patch sheet the panel geometry is derived from
+reference/panel.jpg  the patch sheet the panel geometry is derived from
 ```
 
 Panel geometry is not hand-placed. Knob centres came from Hough circle detection over the reference
