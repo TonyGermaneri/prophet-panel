@@ -58,6 +58,8 @@ export interface KnobLayout {
   labelDy?: number
   /** Snap to integer detents, as on the Vintage knob's 1-4 positions. */
   detents?: number
+  /** Fully chromed top with a black marker, as on MASTER TUNE and VOLUME. */
+  chrome?: boolean
 }
 
 export type SwitchIcon = 'saw' | 'triangle' | 'pulse'
@@ -194,10 +196,10 @@ export const KNOBS: KnobLayout[] = [
   { param: 'ampRelease', x: 2504, y: ROW2, label: 'RELEASE' },
 
   // Free-standing controls
-  { param: 'ui:masterTune', x: 2140, y: ROW1, label: 'MASTER TUNE', scale: 'bipolar' },
+  { param: 'ui:masterTune', x: 2140, y: ROW1, label: 'MASTER TUNE', scale: 'bipolar', chrome: true },
   { param: 'vintage', x: 1418, y: ROW2, label: 'VINTAGE', scale: 'bipolar', detents: 4 },
   { param: 'glideRate', x: 646, y: ROW3, label: 'GLIDE RATE' },
-  { param: 'ui:volume', x: 2322, y: ROW3, label: 'VOLUME' },
+  { param: 'ui:volume', x: 2322, y: ROW3, label: 'VOLUME', chrome: true },
 ]
 
 export const SWITCHES: SwitchLayout[] = [

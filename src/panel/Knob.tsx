@@ -102,6 +102,7 @@ export function Knob({ spec }: { spec: KnobLayout }) {
     <g
       className={[
         'knob',
+        spec.chrome ? 'chrome' : '',
         bind.active ? 'bindable' : '',
         bind.selected === spec.param ? 'bind-selected' : '',
         bind.active && bind.bindingFor(spec.param) ? 'bound' : '',
@@ -140,20 +141,30 @@ export function Knob({ spec }: { spec: KnobLayout }) {
 
       <ellipse className="knob-shadow" cx={1.5} cy={4} rx={R * 1.02} ry={R * 0.98} />
 
+      {/* Chrome bezel. Static, because a bezel is part of the panel, not part of the cap. */}
+      <circle className="knob-rim" r={R} />
+
       {/* The cap itself rotates; the knurling turns with it, which is most of the read. */}
       <g transform={`rotate(${angle})`}>
-        <circle className="knob-skirt" r={R} />
+        <circle className="knob-skirt" r={R - 2.6} />
         <g className="knob-knurl">
           {Array.from({ length: 48 }, (_, i) => {
             const a = (i / 48) * 360
-            const [x1, y1] = polar(a, R - 3.4)
-            const [x2, y2] = polar(a, R - 0.6)
+            const [x1, y1] = polar(a, R - 6)
+            const [x2, y2] = polar(a, R - 3.2)
             return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />
           })}
         </g>
-        <circle className="knob-face" r={R - 3.6} />
-        <circle className="knob-sheen" r={R - 3.6} />
-        <rect className="knob-pointer" x={-1.9} y={-(R - 3)} width={3.8} height={R * 0.62} rx={1.6} />
+        <circle className="knob-face" r={R - 6.2} />
+        <circle className="knob-sheen" r={R - 6.2} />
+        <rect
+          className="knob-pointer"
+          x={-1.9}
+          y={-(R - 5.6)}
+          width={3.8}
+          height={R * 0.58}
+          rx={1.6}
+        />
       </g>
 
       {/* Hit target sits on top so the pointer never lands on a child element mid-drag. */}

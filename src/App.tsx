@@ -10,6 +10,7 @@ import { registerActions } from './state/actions'
 import { notes } from './state/notes'
 import { settings } from './state/settings'
 import { store } from './state/store'
+import { AboutDialog } from './ui/AboutDialog'
 import { BindingsPanel } from './ui/BindingsPanel'
 import { MonitorPanel } from './ui/MonitorPanel'
 import { Toolbar } from './ui/Toolbar'
@@ -26,6 +27,7 @@ function goTo(group: number, program: number): void {
 export function App() {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [monitorOpen, setMonitorOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const prefs = useSettings()
   const bind = useBindings()
   const { octave, velocity } = useComputerKeyboard(true)
@@ -69,6 +71,7 @@ export function App() {
       <Toolbar
         onToggleLibrary={() => setLibraryOpen((v) => !v)}
         onToggleMonitor={() => setMonitorOpen((v) => !v)}
+        onShowAbout={() => setAboutOpen(true)}
       />
       <div className="body">
         <main className="stage">
@@ -82,6 +85,7 @@ export function App() {
         {monitorOpen && <MonitorPanel onClose={() => setMonitorOpen(false)} />}
         {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
       </div>
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
     </div>
   )
 }

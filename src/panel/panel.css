@@ -27,10 +27,14 @@
 .chassis {
   fill: url(#walnut);
 }
-.chassis-grain {
-  fill: url(#walnut);
-  filter: url(#woodGrain);
-  opacity: 0.9;
+.chassis-grain-a {
+  fill: #000;
+  filter: url(#grainA);
+}
+.chassis-grain-b {
+  fill: #000;
+  filter: url(#grainB);
+  opacity: 0.75;
 }
 
 .plate {
@@ -247,14 +251,9 @@
   stroke-width: 1.5;
   filter: url(#softShadow);
 }
-.nameplate text {
-  fill: #2a2a28;
-  font-size: 38px;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-anchor: middle;
-  font-family: Georgia, 'Times New Roman', serif;
+/* The artwork inherits this via currentColor, so plate and logo stay a matched pair. */
+.nameplate-art {
+  color: #23201f;
 }
 
 /* ---- Wheels and keyboard ---- */
@@ -293,4 +292,27 @@
 }
 .keyboard .black-key.held {
   fill: #4a4a46;
+}
+
+/* ---- Knob metalwork ---- */
+
+.knob-rim {
+  fill: url(#chromeRim);
+}
+
+/*
+ * MASTER TUNE and VOLUME are chromed right across the top, so their marker has to be dark to
+ * read against the metal — the opposite of the white marker on the black plastic caps.
+ */
+.knob.chrome .knob-face {
+  fill: url(#chromeFace);
+}
+.knob.chrome .knob-pointer {
+  fill: #14161a;
+}
+.knob.chrome .knob-sheen {
+  fill: none;
+}
+.knob.chrome .knob-knurl line {
+  stroke: rgba(255, 255, 255, 0.3);
 }

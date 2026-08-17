@@ -1,36 +1,32 @@
+import { LOGO_PATHS, LOGO_VIEWBOX } from './logoPaths'
 import { LOGO_PLATE } from './layout'
+
+/** Inset of the artwork within the plate, as a fraction of the plate's size. */
+const FILL = { x: 0.86, y: 0.62 }
 
 /**
  * The nameplate on the lower right of the chassis.
  *
- * TO DROP IN A REAL LOGO: replace the <text> below with the paths from your SVG, wrapped in a
- * <g> that maps your artwork's coordinate space onto the plate. If your SVG has viewBox
- * "0 0 W H", this transform places it centred with a small inset:
- *
- *   const scale = Math.min(LOGO_PLATE.w * 0.86 / W, LOGO_PLATE.h * 0.7 / H)
- *   <g transform={`translate(${cx - (W * scale) / 2},${cy - (H * scale) / 2}) scale(${scale})`}>
- *     …your <path> elements, fill="currentColor"…
- *   </g>
- *
- * Keep `fill="currentColor"` on the paths so the colour stays driven by `.nameplate` in panel.css
- * and the artwork inherits the plate's finish rather than carrying its own hard-coded colour.
+ * The artwork is scaled to fit the plate on whichever axis is tighter and centred, so changing
+ * either the plate geometry or the logo file cannot make it overflow. Paths inherit
+ * `currentColor` from `.nameplate` in panel.css rather than carrying their own colour.
  */
 export function Logo() {
-  const cx = LOGO_PLATE.x + LOGO_PLATE.w / 2
-  const cy = LOGO_PLATE.y + LOGO_PLATE.h / 2
+  const scale = Math.min(
+    (LOGO_PLATE.w * FILL.x) / LOGO_VIEWBOX.width,
+    (LOGO_PLATE.h * FILL.y) / LOGO_VIEWBOX.height,
+  )
+  const x = LOGO_PLATE.x + (LOGO_PLATE.w - LOGO_VIEWBOX.width * scale) / 2
+  const y = LOGO_PLATE.y + (LOGO_PLATE.h - LOGO_VIEWBOX.height * scale) / 2
 
   return (
     <g className="nameplate">
-      <rect
-        x={LOGO_PLATE.x}
-        y={LOGO_PLATE.y}
-        width={LOGO_PLATE.w}
-        height={LOGO_PLATE.h}
-        rx={8}
-      />
-      <text x={cx} y={cy} dy="0.35em">
-        prophet~10
-      </text>
+      <rect x={LOGO_PLATE.x} y={LOGO_PLATE.y} width={LOGO_PLATE.w} height={LOGO_PLATE.h} rx={8} />
+      <g className="nameplate-art" transform={`translate(${x},${y}) scale(${scale})`}>
+        {LOGO_PATHS.map((d, i) => (
+          <path key={i} d={d} fill="currentColor" />
+        ))}
+      </g>
     </g>
   )
 }

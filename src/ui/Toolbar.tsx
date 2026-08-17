@@ -18,9 +18,11 @@ const STATE_TEXT: Record<string, string> = {
 export function Toolbar({
   onToggleLibrary,
   onToggleMonitor,
+  onShowAbout,
 }: {
   onToggleLibrary: () => void
   onToggleMonitor: () => void
+  onShowAbout: () => void
 }) {
   const midi = useMidiStatus()
   const meta = usePatchMeta()
@@ -140,6 +142,7 @@ export function Toolbar({
         </button>
         <button onClick={onToggleMonitor}>Monitor</button>
         <button onClick={onToggleLibrary}>Library</button>
+        <button onClick={onShowAbout}>About</button>
       </div>
     </header>
   )

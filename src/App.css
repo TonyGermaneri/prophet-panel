@@ -561,3 +561,85 @@ button.entry {
   font-size: 10px;
   padding: 1px 4px;
 }
+
+/* ---- About ---- */
+
+.about-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 7, 9, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+
+.about {
+  position: relative;
+  width: min(440px, 100%);
+  background: linear-gradient(#1e2025, #15171b);
+  border: 1px solid #33373f;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  padding: 26px 28px 22px;
+  outline: none;
+}
+.about h2 {
+  margin: 0;
+  font-size: 17px;
+  color: #e8e4d8;
+  letter-spacing: 0.3px;
+}
+.about .byline {
+  margin: 4px 0 0;
+  color: #b8724a;
+  font-size: 13px;
+}
+.about-blurb {
+  color: #8b929d;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 14px 0 18px;
+}
+.about-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #6f7580;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+.about-close:hover {
+  color: #d3cfc5;
+}
+.about-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.about-links li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.about-links a {
+  color: #7fb2e8;
+  font-size: 13px;
+  text-decoration: none;
+  word-break: break-word;
+}
+.about-links a:hover {
+  text-decoration: underline;
+}
+.about-links span {
+  color: #5c626b;
+  font-size: 11px;
+}

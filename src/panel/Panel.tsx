@@ -116,7 +116,15 @@ export function Panel({ compact = false }: { compact?: boolean }) {
         rx={16}
       />
       <rect
-        className="chassis-grain"
+        className="chassis-grain-a"
+        x={CHASSIS.x}
+        y={CHASSIS.y}
+        width={CHASSIS.w}
+        height={chassisHeight}
+        rx={16}
+      />
+      <rect
+        className="chassis-grain-b"
         x={CHASSIS.x}
         y={CHASSIS.y}
         width={CHASSIS.w}

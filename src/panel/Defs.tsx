@@ -6,20 +6,38 @@
 export function Defs() {
   return (
     <defs>
-      {/* Walnut: warm browns crossed with a turbulence grain. */}
+      {/*
+        Walnut: a #946651 base carrying two grain colours. Each grain layer floods its own colour
+        and uses stretched turbulence as its alpha, so the streaks are genuinely that colour rather
+        than a grey noise tint that would wash the base toward neutral.
+      */}
       <linearGradient id="walnut" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#5d3c21" />
-        <stop offset="35%" stopColor="#472c17" />
-        <stop offset="70%" stopColor="#392211" />
-        <stop offset="100%" stopColor="#2a180c" />
+        <stop offset="0%" stopColor="#9e7059" />
+        <stop offset="40%" stopColor="#946651" />
+        <stop offset="100%" stopColor="#835747" />
       </linearGradient>
-      <filter id="woodGrain" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.9 0.014" numOctaves="4" seed="7" />
-        <feColorMatrix type="saturate" values="0" />
-        <feComponentTransfer>
-          <feFuncA type="linear" slope="0.22" intercept="0" />
-        </feComponentTransfer>
-        <feComposite in2="SourceGraphic" operator="atop" />
+
+      <filter id="grainA" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.75 0.011" numOctaves="4" seed="11" />
+        {/* Take the noise's red channel as alpha; the offset thins the streaks out. */}
+        <feColorMatrix
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -0.34"
+          result="mask"
+        />
+        <feFlood floodColor="#7d564c" result="ink" />
+        <feComposite in="ink" in2="mask" operator="in" />
+      </filter>
+
+      <filter id="grainB" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6 0.02" numOctaves="3" seed="29" />
+        <feColorMatrix
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 -0.42"
+          result="mask"
+        />
+        <feFlood floodColor="#814e3d" result="ink" />
+        <feComposite in="ink" in2="mask" operator="in" />
       </filter>
 
       {/*
@@ -43,6 +61,28 @@ export function Defs() {
         </feComponentTransfer>
         <feComposite in2="SourceGraphic" operator="atop" />
       </filter>
+
+      {/*
+        Chrome. SVG has no conic gradient, so the turned-metal look comes from a linear gradient
+        with alternating highlights and shadows across the diagonal.
+      */}
+      <linearGradient id="chromeRim" x1="0.12" y1="0" x2="0.88" y2="1">
+        <stop offset="0%" stopColor="#fdfdfe" />
+        <stop offset="16%" stopColor="#9ea5ac" />
+        <stop offset="32%" stopColor="#f3f5f7" />
+        <stop offset="50%" stopColor="#63696f" />
+        <stop offset="68%" stopColor="#e2e6ea" />
+        <stop offset="85%" stopColor="#848a91" />
+        <stop offset="100%" stopColor="#f0f2f4" />
+      </linearGradient>
+      <linearGradient id="chromeFace" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="20%" stopColor="#c6ccd2" />
+        <stop offset="38%" stopColor="#fbfcfd" />
+        <stop offset="56%" stopColor="#787f86" />
+        <stop offset="74%" stopColor="#e8ebee" />
+        <stop offset="100%" stopColor="#969da4" />
+      </linearGradient>
 
       {/* Knob cap: dark moulded plastic lit from upper left, in a knurled skirt. */}
       <radialGradient id="knobFace" cx="36%" cy="28%" r="80%">
