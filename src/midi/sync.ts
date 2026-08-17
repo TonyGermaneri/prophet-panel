@@ -214,23 +214,21 @@ export class SynthSync {
   // ---- requests ----
 
   requestEditBuffer(): void {
-    this.connection.sendRequest((id) => requestEditBuffer(id))
+    this.connection.sendAddressed((id) => requestEditBuffer(id))
   }
 
   requestProgram(group: number, program: number): void {
-    this.connection.sendRequest((id) => requestProgram(id, group, program))
+    this.connection.sendAddressed((id) => requestProgram(id, group, program))
   }
 
   /** Send the current panel state to the synth's edit buffer, for audition without storing it. */
   sendEditBuffer(patch: Patch = this.store.snapshot()): void {
-    this.connection.send(encodeEditBuffer(this.connection.deviceId, patch.payload))
+    this.connection.sendAddressed((id) => encodeEditBuffer(id, patch.payload))
   }
 
   /** Write a patch into a numbered slot on the synth. */
   writeProgram(patch: Patch, group = patch.group, program = patch.program): void {
-    this.connection.send(
-      encodeProgramData(this.connection.deviceId, group, program, patch.payload),
-    )
+    this.connection.sendAddressed((id) => encodeProgramData(id, group, program, patch.payload))
   }
 
   selectProgram(group: number, program: number): void {

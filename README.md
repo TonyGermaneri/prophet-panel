@@ -54,6 +54,13 @@ the synth is plugged in by USB cable. Reach it with `GLOBALS`, then program butt
 follows the slot and then requests the new edit buffer — which needs sysex working in both
 directions.
 
+**Knobs reach the synth but selecting a patch does nothing.** Two causes, both reported in the
+control panel. Either sysex was not permitted for the site — NRPN carries no permission
+requirement, so parameter control keeps working while every patch transfer fails — or the
+instrument has not identified itself yet, so its device ID is unknown. Every device-addressed
+message is sent to all three IDs in the family until one is confirmed, so this should self-correct;
+pressing Identify settles it immediately.
+
 ## Installing
 
 Open the site and use the browser's install control (an icon in the address bar in Chrome, or

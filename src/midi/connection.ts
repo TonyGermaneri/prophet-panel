@@ -52,6 +52,11 @@ export class MidiConnection {
   output: MIDIOutput | null = null
   /** The performance controller, distinct from the synth's own input. */
   controllerInput: MIDIInput | null = null
+  /**
+   * Whether the granted access actually permits sysex. Access can be granted without it, in which
+   * case parameter control works and every patch transfer fails — worth stating plainly.
+   */
+  sysexEnabled = false
   device: DeviceInfo | null = null
   channel = 0
 
@@ -82,6 +87,7 @@ export class MidiConnection {
     try {
       this.access = await navigator.requestMIDIAccess({ sysex: true })
       this.state = 'ready'
+      this.sysexEnabled = this.access.sysexEnabled !== false
       this.access.onstatechange = () => {
         // Ports appearing or disappearing must be (re)attached, or a device plugged in later
         // would never be heard by MIDI learn.
@@ -206,9 +212,23 @@ export class MidiConnection {
     for (const fn of this.handlers) fn(data)
   }
 
+  /** The last error thrown by a send, surfaced so a silent failure becomes a visible one. */
+  sendError: string | null = null
+
   send(data: Uint8Array | number[]): void {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
-    this.output?.send(Array.from(bytes))
+    try {
+      this.output?.send(Array.from(bytes))
+    } catch (error) {
+      // Web MIDI throws InvalidAccessError for a sysex message when the access was granted
+      // without sysex permission. Letting that propagate would abort a whole parameter flush.
+      const message = error instanceof Error ? error.message : String(error)
+      if (this.sendError !== message) {
+        this.sendError = message
+        this.notify()
+      }
+      return
+    }
     for (const fn of this.sentHandlers) fn(bytes)
   }
 
@@ -219,10 +239,15 @@ export class MidiConnection {
   }
 
   /**
-   * Send a Sequential request once per candidate device ID, until one is confirmed. The synth
-   * ignores requests addressed to another ID, so the extra messages are harmless.
+   * Send a message that carries a device ID, once per candidate until one is confirmed.
+   *
+   * This applies to everything device-addressed, not just requests. The ID defaults to the value
+   * the factory files use and is only corrected once the instrument has been heard from, so on a
+   * fresh origin an edit-buffer or program write addressed to the wrong ID is silently dropped by
+   * the synth — while NRPN, which carries no device ID, keeps working and hides the problem.
+   * The synth ignores anything addressed elsewhere, so the extra copies are harmless.
    */
-  sendRequest(build: (deviceId: number) => Uint8Array): void {
+  sendAddressed(build: (deviceId: number) => Uint8Array): void {
     if (this.deviceIdConfirmed) {
       this.send(build(this.deviceId))
       return

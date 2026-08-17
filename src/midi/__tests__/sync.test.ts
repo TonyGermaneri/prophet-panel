@@ -32,8 +32,10 @@ function fakeConnection() {
       sent.push(bytes)
       fake.autoRespond?.(bytes)
     },
-    sendRequest(build: (id: number) => Uint8Array) {
-      fake.send(build(fake.deviceId))
+    /** Mirrors the real fan-out: every candidate ID until one is confirmed. */
+    sendAddressed(build: (id: number) => Uint8Array) {
+      if (fake.deviceIdConfirmed) fake.send(build(fake.deviceId))
+      else for (const id of [0x31, 0x32, 0x33]) fake.send(build(id))
     },
     onMessage(fn: (data: Uint8Array) => void) {
       handlers.add(fn)
@@ -166,6 +168,28 @@ describe('synth to panel', () => {
     expect(connection.sent).toHaveLength(1)
 
     globalThis.requestAnimationFrame = raf
+  })
+
+  it('addresses a patch send to every candidate ID until the synth identifies itself', () => {
+    // NRPN carries no device ID, so parameter control works regardless. A patch transfer does
+    // carry one, and the synth silently drops anything addressed elsewhere — on a fresh origin
+    // that looks like "knobs work but patches do nothing".
+    connection.deviceIdConfirmed = false
+    sync.sendEditBuffer(BRASS)
+    expect(connection.sent.map((m) => m[2])).toEqual([0x31, 0x32, 0x33])
+    expect(connection.sent.every((m) => m[3] === 0x03)).toBe(true)
+
+    connection.sent.length = 0
+    connection.deviceIdConfirmed = true
+    sync.sendEditBuffer(BRASS)
+    expect(connection.sent.map((m) => m[2])).toEqual([0x32])
+  })
+
+  it('addresses a program write the same way', () => {
+    connection.deviceIdConfirmed = false
+    sync.writeProgram(BRASS, 4, 9)
+    expect(connection.sent.map((m) => m[2])).toEqual([0x31, 0x32, 0x33])
+    expect(connection.sent.every((m) => m[3] === 0x02 && m[4] === 4 && m[5] === 9)).toBe(true)
   })
 
   it('keeps the panel out of a bulk library fetch', async () => {

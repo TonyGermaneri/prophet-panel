@@ -752,3 +752,9 @@ button.entry {
   color: #5c626b;
   font-size: 11px;
 }
+
+.hint.warn {
+  background: #2a1512;
+  border-color: #6b2f22;
+  color: #e5a08c;
+}

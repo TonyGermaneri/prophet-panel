@@ -42,6 +42,22 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
             : STATE_TEXT[midi.state]}
         </p>
 
+        {/* Both of these let parameter control work while every patch transfer fails silently. */}
+        {ready && !midi.sysexEnabled && (
+          <p className="hint warn">
+            MIDI is connected but <strong>SysEx is not permitted</strong> on this site, so knobs
+            work and patch transfer cannot. Allow “control and reprogram your MIDI devices” for
+            this site in the browser's permissions, then reconnect.
+          </p>
+        )}
+        {ready && midi.sysexEnabled && !midi.deviceIdConfirmed && (
+          <p className="hint">
+            The instrument has not identified itself yet, so patch transfers are addressed to every
+            device ID in the family until it does. Press Identify, or sync from the synth once.
+          </p>
+        )}
+        {midi.sendError && <p className="hint warn">Last send failed: {midi.sendError}</p>}
+
         {!ready ? (
           <button
             className="primary"
