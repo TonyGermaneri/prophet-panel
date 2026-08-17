@@ -1,5 +1,11 @@
+/*
+ * The app fills the viewport exactly and never scrolls as a whole: the stage and each side panel
+ * scroll inside themselves. With `min-height` the tall panel artwork grew the page, which dragged
+ * the side panels off the bottom of the screen with it.
+ */
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: radial-gradient(ellipse at 50% 0%, #24262b 0%, #131417 55%, #0b0c0e 100%);
@@ -12,6 +18,7 @@
   display: flex;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .stage {
@@ -153,9 +160,12 @@
   background: #14161a;
   border-left: 1px solid #000;
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
 }
 
 .library-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -180,6 +190,7 @@
 }
 
 .library-actions {
+  flex: 0 0 auto;
   padding: 12px 14px;
   border-bottom: 1px solid #23262c;
   display: flex;
@@ -208,6 +219,7 @@
 
 .library-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-bottom: 20px;
 }
@@ -302,6 +314,8 @@ button.entry {
   background: #101216;
   border-left: 1px solid #000;
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
 }
 
 .diagnosis p {
@@ -330,6 +344,7 @@ button.entry {
 
 .monitor-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   font-size: 11px;
 }

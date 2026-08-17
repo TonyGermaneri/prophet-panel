@@ -23,56 +23,58 @@ export function Defs() {
       </filter>
 
       {/*
-        Faceplate: near-white with a faint top-down fall-off.
+        Faceplate: the Rev4 panel is black with white legends, so this is a near-black with a
+        faint top-down fall-off rather than the white of the printed patch sheet.
         User-space units, not the default bounding-box units, so that the small rectangles which
         clear the section rules for their legends pick up exactly the same gradient stop as the
         plate behind them — otherwise each legend sits in a visible lighter patch.
       */}
       <linearGradient id="plate" gradientUnits="userSpaceOnUse" x1="0" y1="74" x2="0" y2="559">
-        <stop offset="0%" stopColor="#fbfaf7" />
-        <stop offset="45%" stopColor="#f2f0ea" />
-        <stop offset="100%" stopColor="#e6e3da" />
+        <stop offset="0%" stopColor="#26262a" />
+        <stop offset="45%" stopColor="#1a1a1d" />
+        <stop offset="100%" stopColor="#101012" />
       </linearGradient>
       <filter id="plateTexture" x="0%" y="0%" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" seed="3" />
         <feColorMatrix type="saturate" values="0" />
         <feComponentTransfer>
-          <feFuncA type="linear" slope="0.06" />
+          {/* Grey noise reads far stronger over a black plate than it did over a white one. */}
+          <feFuncA type="linear" slope="0.03" />
         </feComponentTransfer>
         <feComposite in2="SourceGraphic" operator="atop" />
       </filter>
 
-      {/* Knob cap: cream face lit from upper left, sitting in a dark knurled skirt. */}
-      <radialGradient id="knobFace" cx="36%" cy="30%" r="78%">
-        <stop offset="0%" stopColor="#fffdf8" />
-        <stop offset="55%" stopColor="#eae5d8" />
-        <stop offset="100%" stopColor="#c9c2b1" />
+      {/* Knob cap: dark moulded plastic lit from upper left, in a knurled skirt. */}
+      <radialGradient id="knobFace" cx="36%" cy="28%" r="80%">
+        <stop offset="0%" stopColor="#4e4e52" />
+        <stop offset="55%" stopColor="#2c2c30" />
+        <stop offset="100%" stopColor="#141416" />
       </radialGradient>
       <linearGradient id="knobSkirt" x1="0.25" y1="0" x2="0.75" y2="1">
-        <stop offset="0%" stopColor="#4a4844" />
-        <stop offset="50%" stopColor="#252422" />
-        <stop offset="100%" stopColor="#111110" />
+        <stop offset="0%" stopColor="#3a3a3e" />
+        <stop offset="50%" stopColor="#1c1c1f" />
+        <stop offset="100%" stopColor="#0a0a0b" />
       </linearGradient>
       <linearGradient id="knobSheen" x1="0" y1="0" x2="0.35" y2="1">
-        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
-        <stop offset="45%" stopColor="#ffffff" stopOpacity="0.05" />
-        <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
+        <stop offset="45%" stopColor="#ffffff" stopOpacity="0.03" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0.3" />
       </linearGradient>
 
       {/* Switch cap: moulded plastic with a bevelled shoulder. */}
       <linearGradient id="capFace" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#f4f2ec" />
-        <stop offset="55%" stopColor="#dcd8ce" />
-        <stop offset="100%" stopColor="#b9b4a8" />
+        <stop offset="0%" stopColor="#55555a" />
+        <stop offset="55%" stopColor="#35353a" />
+        <stop offset="100%" stopColor="#1d1d20" />
       </linearGradient>
       <linearGradient id="capBevel" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#9d998e" />
-        <stop offset="100%" stopColor="#6f6c63" />
+        <stop offset="0%" stopColor="#3d3d42" />
+        <stop offset="100%" stopColor="#232326" />
       </linearGradient>
       <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#141414" />
-        <stop offset="45%" stopColor="#2b2a28" />
-        <stop offset="100%" stopColor="#0b0b0a" />
+        <stop offset="0%" stopColor="#050505" />
+        <stop offset="45%" stopColor="#121214" />
+        <stop offset="100%" stopColor="#000000" />
       </linearGradient>
 
       {/* LED: dark red when idle, saturated with a bloom when lit. */}

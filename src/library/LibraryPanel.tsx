@@ -54,15 +54,16 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
     return [...grouped.entries()]
   }, [entries, filter])
 
-  const load = (entry: LibraryEntry) => {
-    setSelected(entry.id)
-    store.loadPatch(patchFromEntry(entry))
-    store.setSlot(entry.group, entry.program)
-  }
-
+  /**
+   * Selecting a patch does both halves at once: the panel takes the patch, and the synth gets it
+   * in its edit buffer so you hear what you are looking at.
+   */
   const audition = (entry: LibraryEntry) => {
-    load(entry)
-    sync.sendEditBuffer(patchFromEntry(entry))
+    const patch = patchFromEntry(entry)
+    setSelected(entry.id)
+    store.loadPatch(patch)
+    store.setSlot(entry.group, entry.program)
+    sync.sendEditBuffer(patch)
   }
 
   const saveCurrent = async () => {
@@ -157,16 +158,20 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
             <ul>
               {list.map((entry) => (
                 <li key={entry.id} className={entry.id === selected ? 'selected' : undefined}>
-                  <button className="entry" onClick={() => load(entry)} onDoubleClick={() => audition(entry)}>
+                  <button
+                    className="entry"
+                    title="Load onto the panel and send to the synth"
+                    onClick={() => audition(entry)}
+                  >
                     <span className="entry-slot">{slotLabel(entry.group, entry.program)}</span>
                     <span className="entry-name">{entry.name}</span>
                   </button>
                   <button
                     className="link"
-                    title="Send to the synth's edit buffer"
+                    title="Send again, e.g. after editing on the panel"
                     onClick={() => audition(entry)}
                   >
-                    Send
+                    Resend
                   </button>
                   <button
                     className="link"

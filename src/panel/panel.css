@@ -17,6 +17,11 @@
   font-stretch: condensed;
 }
 
+/* The Rev4 faceplate is black; every printed legend, rule and tick is white silkscreen. */
+.prophet-panel {
+  --legend: #edece7;
+}
+
 /* ---- Chassis and faceplate ---- */
 
 .chassis {
@@ -42,15 +47,20 @@
 
 .section rect {
   fill: none;
-  stroke: #17171a;
+  stroke: var(--legend);
   stroke-width: 4.5;
 }
+/*
+ * Clears the section rule where its legend sits. It must carry the same fill *and* the same
+ * texture filter as the plate, otherwise each legend sits in a visibly smoother patch.
+ */
 .section .section-title-mask {
   fill: url(#plate);
+  filter: url(#plateTexture);
   stroke: none;
 }
 .section-title {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 1.7px;
@@ -58,11 +68,11 @@
 }
 
 .bracket line {
-  stroke: #17171a;
+  stroke: var(--legend);
   stroke-width: 3;
 }
 .bracket text {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -70,7 +80,7 @@
 }
 
 .shift-label text {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 9.5px;
   font-weight: 600;
   text-anchor: middle;
@@ -88,26 +98,26 @@
 }
 
 .knob-scale line {
-  stroke: #17171a;
+  stroke: var(--legend);
   stroke-width: 2.6;
   stroke-linecap: round;
 }
 .knob-scale text {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 12.5px;
   font-weight: 700;
   text-anchor: middle;
 }
 
 .knob-shadow {
-  fill: rgba(0, 0, 0, 0.42);
+  fill: rgba(0, 0, 0, 0.6);
   filter: blur(3px);
 }
 .knob-skirt {
   fill: url(#knobSkirt);
 }
 .knob-knurl line {
-  stroke: rgba(255, 255, 255, 0.16);
+  stroke: rgba(255, 255, 255, 0.13);
   stroke-width: 1.1;
 }
 .knob-face {
@@ -118,20 +128,20 @@
   pointer-events: none;
 }
 .knob-pointer {
-  fill: #17171a;
+  fill: #f7f6f2;
 }
 .knob-hit {
   fill: transparent;
 }
 
 .knob-label {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 1px;
 }
 .knob-end-label {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 11.5px;
   font-weight: 700;
   text-anchor: middle;
@@ -150,7 +160,7 @@
 
 .switch-bezel {
   fill: url(#bezel);
-  stroke: #0a0a0a;
+  stroke: #3a3a3e;
   stroke-width: 1.5;
 }
 .switch-cap-bevel {
@@ -187,20 +197,20 @@
 }
 
 .switch-label {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.8px;
 }
 .switch-led-label {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 10px;
   font-weight: 700;
   text-anchor: middle;
 }
 .switch-icon {
   fill: none;
-  stroke: #17171a;
+  stroke: var(--legend);
   stroke-width: 2.6;
   stroke-linejoin: miter;
 }
@@ -222,7 +232,7 @@
   text-shadow: 0 0 8px rgba(255, 107, 61, 0.8);
 }
 .display .display-legend {
-  fill: #17171a;
+  fill: var(--legend);
   font-size: 12px;
   letter-spacing: 0.6px;
   text-shadow: none;
