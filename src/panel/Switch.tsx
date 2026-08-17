@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { BY_ID } from '../domain/parameters'
+import { dispatchAction } from '../state/actions'
 import { useParam } from '../state/hooks'
 import { controlRange } from '../state/store'
 import { accessibleName, SWITCH, type SwitchIcon, type SwitchLayout } from './layout'
@@ -54,6 +55,7 @@ export function Switch({ spec }: { spec: SwitchLayout }) {
     } else if (spec.momentary) {
       setFlash(true)
       window.setTimeout(() => setFlash(false), 140)
+      if (spec.action) dispatchAction(spec.action)
     } else {
       setPlain(next)
     }

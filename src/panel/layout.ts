@@ -7,6 +7,8 @@
  * coordinate space means the layout can always be re-derived from, and diffed against, the sheet.
  */
 
+import type { PanelAction } from '../state/actions'
+
 export const PANEL = { width: 2653, height: 1137 }
 export const CHASSIS = { x: 15, y: 34, w: 2618, h: 1085 }
 export const PLATE = { x: 57, y: 74, w: 2534, h: 485 }
@@ -84,6 +86,8 @@ export interface SwitchLayout {
    */
   bits?: string[]
   momentary?: boolean
+  /** Momentary buttons that act rather than hold a value dispatch this named action. */
+  action?: PanelAction
 }
 
 export interface BracketLayout {
@@ -256,16 +260,31 @@ export const SWITCHES: SwitchLayout[] = [
 
   // Programmer
   { param: 'ui:preset', x: 879, y: ROW3, label: 'PRESET' },
-  { param: 'ui:record', x: 983, y: ROW3, label: 'RECORD', momentary: true },
+  { param: 'ui:record', x: 983, y: ROW3, label: 'RECORD', momentary: true, action: 'record' },
   { param: 'ui:factory', x: 1088, y: ROW3, label: 'FACTORY' },
-  { param: 'ui:groupSelect', x: 1154, y: ROW3, label: 'GROUP\nSELECT', momentary: true },
-  { param: 'ui:bankSelect', x: 1220, y: ROW3, label: 'BANK\nSELECT', momentary: true },
+  {
+    param: 'ui:groupSelect',
+    x: 1154,
+    y: ROW3,
+    label: 'GROUP\nSELECT',
+    momentary: true,
+    action: 'groupSelect',
+  },
+  {
+    param: 'ui:bankSelect',
+    x: 1220,
+    y: ROW3,
+    label: 'BANK\nSELECT',
+    momentary: true,
+    action: 'bankSelect',
+  },
   ...Array.from({ length: 8 }, (_, i): SwitchLayout => ({
     param: `ui:program${i + 1}`,
     x: 1428 + i * 67,
     y: ROW3,
     label: String(i + 1),
     momentary: true,
+    action: `program${i + 1}` as PanelAction,
   })),
   { param: 'ui:globals', x: 2001, y: ROW3, label: 'GLOBALS', leds: 2 },
 ]
