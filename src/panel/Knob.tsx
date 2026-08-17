@@ -14,6 +14,8 @@ const DRAG_RANGE = 260
 const FINE_FACTOR = 0.2
 /** Measured off the reference sheet: legends sit 57 units below the knob centre. */
 const LABEL_OFFSET = 57
+/** Offset of the outermost scale numbers, which sit at ±135° — both coordinates are r/√2. */
+const EXTREME_TICK = KNOB.numberRadius * Math.SQRT1_2
 
 function angleFor(value: number, min: number, max: number): number {
   const t = max === min ? 0 : (value - min) / (max - min)
@@ -165,12 +167,29 @@ export function Knob({ spec }: { spec: KnobLayout }) {
         onDoubleClick={() => commit(spec.scale === 'bipolar' ? (min + max) / 2 : min)}
       />
 
+      {/*
+        Scale-end legends (WHEEL-MOD's LFO/NOISE) hang off the outermost scale numbers. They are
+        placed from the same polar geometry as those numbers and anchored inward, so they sit hard
+        against the "5" on each side and stay inside the section frame instead of overhanging it.
+      */}
       {spec.endLabels && (
         <>
-          <text className="knob-end-label" x={-numberRadius - 18} y={numberRadius - 14}>
+          <text
+            className="knob-end-label"
+            textAnchor="end"
+            x={-(EXTREME_TICK + 5)}
+            y={EXTREME_TICK}
+            dy="0.36em"
+          >
             {spec.endLabels[0]}
           </text>
-          <text className="knob-end-label" x={numberRadius + 20} y={numberRadius - 14}>
+          <text
+            className="knob-end-label"
+            textAnchor="start"
+            x={EXTREME_TICK + 5}
+            y={EXTREME_TICK}
+            dy="0.36em"
+          >
             {spec.endLabels[1]}
           </text>
         </>

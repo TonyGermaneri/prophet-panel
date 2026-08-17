@@ -140,11 +140,11 @@
   font-weight: 700;
   letter-spacing: 1px;
 }
+/* Anchored per-element so each legend hugs the scale number it belongs to. */
 .knob-end-label {
   fill: var(--legend);
   font-size: 11.5px;
   font-weight: 700;
-  text-anchor: middle;
 }
 
 /* ---- Switches ---- */

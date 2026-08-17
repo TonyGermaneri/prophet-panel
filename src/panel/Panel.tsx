@@ -1,6 +1,7 @@
 import { Defs } from './Defs'
 import { Keyboard } from './Keyboard'
 import { Knob } from './Knob'
+import { Logo } from './Logo'
 import { Switch } from './Switch'
 import {
   BRACKETS,
@@ -8,7 +9,6 @@ import {
   COMPACT,
   DISPLAY,
   KNOBS,
-  LOGO_PLATE,
   PANEL,
   PLATE,
   SECTIONS,
@@ -167,23 +167,7 @@ export function Panel({ compact = false }: { compact?: boolean }) {
 
       {!compact && (
         <>
-          {/* Nameplate */}
-          <g className="nameplate">
-            <rect
-              x={LOGO_PLATE.x}
-              y={LOGO_PLATE.y}
-              width={LOGO_PLATE.w}
-              height={LOGO_PLATE.h}
-              rx={8}
-            />
-            <text
-              x={LOGO_PLATE.x + LOGO_PLATE.w / 2}
-              y={LOGO_PLATE.y + LOGO_PLATE.h / 2}
-              dy="0.35em"
-            >
-              prophet~10
-            </text>
-          </g>
+          <Logo />
 
           <Wheel wheel={WHEELS.pitch} />
           <Wheel wheel={WHEELS.mod} />

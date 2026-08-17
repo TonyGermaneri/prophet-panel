@@ -101,7 +101,14 @@ export interface BracketLayout {
   text: string
 }
 
-export const SECTIONS: SectionLayout[] = [
+/**
+ * Extra breathing room inside every section frame, beyond the outline measured off the patch
+ * sheet. Horizontal only: the rows sit ~8 units apart vertically, so growing the frames downward
+ * would collide with the row beneath before it bought any padding.
+ */
+const SECTION_PAD_X = 10
+
+const MEASURED_SECTIONS: SectionLayout[] = [
   { id: 'polyMod', title: 'POLY-MOD', box: { x: 82, y: 116, w: 461, h: 131 } },
   { id: 'oscA', title: 'OSCILLATOR A', box: { x: 586, y: 116, w: 478, h: 131 } },
   { id: 'mixer', title: 'MIXER', box: { x: 1106, y: 116, w: 366, h: 131 } },
@@ -112,6 +119,15 @@ export const SECTIONS: SectionLayout[] = [
   { id: 'wheelMod', title: 'WHEEL-MOD', box: { x: 82, y: 394, w: 461, h: 131 } },
   { id: 'programmer', title: 'PROGRAMMER', box: { x: 846, y: 394, w: 1190, h: 131 } },
 ]
+
+export const SECTIONS: SectionLayout[] = MEASURED_SECTIONS.map((section) => ({
+  ...section,
+  box: {
+    ...section.box,
+    x: section.box.x - SECTION_PAD_X,
+    w: section.box.w + SECTION_PAD_X * 2,
+  },
+}))
 
 const SECTION_TITLES = new Map(SECTIONS.map((s) => [s.id, s.title]))
 

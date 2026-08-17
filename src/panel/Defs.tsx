@@ -8,10 +8,10 @@ export function Defs() {
     <defs>
       {/* Walnut: warm browns crossed with a turbulence grain. */}
       <linearGradient id="walnut" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#a9743f" />
-        <stop offset="35%" stopColor="#8d5a2d" />
-        <stop offset="70%" stopColor="#7a4a24" />
-        <stop offset="100%" stopColor="#653a1b" />
+        <stop offset="0%" stopColor="#5d3c21" />
+        <stop offset="35%" stopColor="#472c17" />
+        <stop offset="70%" stopColor="#392211" />
+        <stop offset="100%" stopColor="#2a180c" />
       </linearGradient>
       <filter id="woodGrain" x="0%" y="0%" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.9 0.014" numOctaves="4" seed="7" />
