@@ -15,6 +15,7 @@ import {
   SHIFT_LABELS,
   SHIFT_LABEL_Y,
   WHEEL_PANEL,
+  KEYBOARD,
   SWITCHES,
   WHEELS,
 } from './layout'
@@ -143,6 +144,15 @@ export function Panel({ compact = false }: { compact?: boolean }) {
         rx={16}
       />
 
+      <rect
+        className="chassis-edge"
+        x={CHASSIS.x + 2}
+        y={CHASSIS.y + 2}
+        width={CHASSIS.w - 4}
+        height={chassisHeight - 4}
+        rx={15}
+      />
+
       {/* Faceplate */}
       <rect className="plate" x={PLATE.x} y={PLATE.y} width={PLATE.w} height={PLATE.h} rx={10} />
       <rect
@@ -200,6 +210,15 @@ export function Panel({ compact = false }: { compact?: boolean }) {
           <Wheel wheel={WHEELS.pitch} />
           <Wheel wheel={WHEELS.mod} />
           <Keyboard />
+
+          {/* Shadowed underside of the wood where it overhangs the keybed. */}
+          <rect
+            className="wood-lip"
+            x={CHASSIS.x}
+            y={KEYBOARD.y - 22}
+            width={CHASSIS.w}
+            height={22}
+          />
         </>
       )}
     </svg>

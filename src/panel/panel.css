@@ -298,23 +298,74 @@
   text-anchor: middle;
 }
 
-.keyboard .white-key {
+.chassis-edge {
+  fill: none;
+  stroke: rgba(10, 5, 3, 0.55);
+  stroke-width: 5;
+  pointer-events: none;
+}
+.wood-lip {
+  fill: url(#woodLip);
+  pointer-events: none;
+}
+
+/* ---- Keybed ---- */
+
+.keybed-back {
+  fill: #08080a;
+}
+.keybed-cast {
+  fill: url(#keybedCast);
+  pointer-events: none;
+}
+
+.white-key-body {
   fill: url(#whiteKey);
-  stroke: #8d8a82;
-  stroke-width: 1.5;
   cursor: pointer;
 }
-.keyboard .white-key.held {
-  fill: #cfc9b8;
+.white-key-lip {
+  fill: url(#whiteKeyLip);
+  pointer-events: none;
 }
-.keyboard .black-key {
+.white-key-flank {
+  fill: url(#whiteKeyFlank);
+  pointer-events: none;
+}
+
+/* A pressed key dips and loses the light it was catching. */
+.white-key,
+.black-key {
+  transition: transform 60ms ease-out;
+}
+.white-key.held,
+.black-key.held {
+  transform: translateY(2.5px);
+}
+.white-key.held .white-key-body {
+  fill: #d9d5c9;
+}
+.white-key.held .white-key-lip {
+  opacity: 0.55;
+}
+
+.black-key-body {
   fill: url(#blackKey);
-  stroke: #000;
-  stroke-width: 1.2;
   cursor: pointer;
+  filter: url(#blackKeyDrop);
 }
-.keyboard .black-key.held {
-  fill: #4a4a46;
+.black-key-arris {
+  fill: url(#blackKeyArris);
+  pointer-events: none;
+}
+.black-key-gleam {
+  fill: url(#blackKeyGleam);
+  pointer-events: none;
+}
+.black-key.held .black-key-body {
+  fill: #303034;
+}
+.black-key.held .black-key-gleam {
+  opacity: 0.45;
 }
 
 /* ---- Knob metalwork ---- */

@@ -184,21 +184,64 @@ export function Defs() {
         <stop offset="100%" stopColor="#a9a9a3" />
       </linearGradient>
 
-      {/* Keys. */}
+      {/* Keys. Ivory is warm, and brightest across the middle of the playing surface. */}
       <linearGradient id="whiteKey" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#f7f6f2" />
-        <stop offset="80%" stopColor="#eeece5" />
-        <stop offset="100%" stopColor="#d8d5cc" />
+        <stop offset="0%" stopColor="#e4e1d8" />
+        <stop offset="12%" stopColor="#f6f4ee" />
+        <stop offset="62%" stopColor="#fbfaf6" />
+        <stop offset="100%" stopColor="#e9e6dd" />
       </linearGradient>
+      {/* Front chamfer: catches the light along its top arris, shaded at the very bottom. */}
+      <linearGradient id="whiteKeyLip" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#8f8c82" stopOpacity="0.5" />
+        <stop offset="14%" stopColor="#ffffff" stopOpacity="0.95" />
+        <stop offset="62%" stopColor="#f2efe7" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#a5a297" stopOpacity="0.85" />
+      </linearGradient>
+      {/* Shadow the neighbouring key throws down the left flank. */}
+      <linearGradient id="whiteKeyFlank" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#000000" stopOpacity="0.42" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </linearGradient>
+
       <linearGradient id="blackKey" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#3a3a38" />
-        <stop offset="70%" stopColor="#191918" />
-        <stop offset="100%" stopColor="#0a0a09" />
+        <stop offset="0%" stopColor="#26262a" />
+        <stop offset="45%" stopColor="#151517" />
+        <stop offset="100%" stopColor="#050506" />
+      </linearGradient>
+      <linearGradient id="blackKeyArris" x1="0.1" y1="0" x2="0.9" y2="0">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
+        <stop offset="30%" stopColor="#ffffff" stopOpacity="0.03" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
+      </linearGradient>
+      {/* The facet where the top face turns down to the front picks up a distinct band of light. */}
+      <linearGradient id="blackKeyGleam" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+        <stop offset="42%" stopColor="#b9bec6" stopOpacity="0.2" />
+        <stop offset="62%" stopColor="#8b8f96" stopOpacity="0.1" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0.28" />
+      </linearGradient>
+
+      {/* The fallboard's shadow across the back of the keys, and its dark bottom edge. */}
+      <linearGradient id="keybedCast" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#000000" stopOpacity="0.72" />
+        <stop offset="45%" stopColor="#000000" stopOpacity="0.28" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="woodLip" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#000000" stopOpacity="0" />
+        <stop offset="65%" stopColor="#140b05" stopOpacity="0.45" />
+        <stop offset="100%" stopColor="#0a0503" stopOpacity="0.9" />
       </linearGradient>
 
       <filter id="plateDrop" x="-5%" y="-15%" width="110%" height="140%">
         <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#000" floodOpacity="0.45" />
       </filter>
+      {/* Black keys stand proud of the whites and drop a shadow to their right. */}
+      <filter id="blackKeyDrop" x="-40%" y="-10%" width="200%" height="140%">
+        <feDropShadow dx="3" dy="4" stdDeviation="3.5" floodColor="#000" floodOpacity="0.62" />
+      </filter>
+
       <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
         <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="#000" floodOpacity="0.5" />
       </filter>
