@@ -8,6 +8,7 @@ import {
 } from './domain/patch'
 import { LibraryPanel } from './library/LibraryPanel'
 import { library } from './library/libraryStore'
+import { sharedLibraries } from './library/shared'
 import { connection, sync } from './midi'
 import { bindings } from './midi/bindings'
 import { monitor } from './midi/monitor'
@@ -45,6 +46,10 @@ export function App() {
     // Seed and load at startup rather than when the library panel first opens, because the
     // header's patch stepper walks the same list and the panel is usually not mounted.
     void library.init()
+
+    // Shared libraries are re-read every load rather than cached, so a repository that gains a
+    // collection shows it without anyone having to refresh anything by hand.
+    void sharedLibraries.loadAll()
 
     // Reconnect without being asked. Chrome remembers the sysex grant per origin, so once access
     // has been given a reload can restore the connection silently; without the flag we would be

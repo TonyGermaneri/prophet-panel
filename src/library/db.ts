@@ -9,7 +9,11 @@ import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
 
 import { type Patch, patchFromPayload } from '../domain/patch'
 
-export type PatchSource = 'factory' | 'user' | 'device' | 'import'
+/**
+ * Where an entry came from. Everything but `shared` is the user's own and lives in IndexedDB;
+ * `shared` entries are read from someone else's repository at load time and held only in memory.
+ */
+export type PatchSource = 'factory' | 'user' | 'device' | 'import' | 'shared'
 
 export interface LibraryEntry {
   id: string
@@ -20,6 +24,8 @@ export interface LibraryEntry {
   source: PatchSource
   /** Grouping label shown in the browser, e.g. "Factory Set 1" or "From Prophet-10". */
   bank: string
+  /** Which shared collection's tab this belongs to. Absent for the user's own patches. */
+  collectionKey?: string
   updatedAt: number
 }
 

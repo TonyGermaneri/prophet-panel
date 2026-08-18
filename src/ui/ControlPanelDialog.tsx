@@ -7,6 +7,7 @@ import { library } from '../library/libraryStore'
 import { connection, sync } from '../midi'
 import { settings } from '../state/settings'
 import { store } from '../state/store'
+import { LibrariesTab } from './LibrariesTab'
 import { Modal } from './Modal'
 import { useSettings } from './useBindings'
 import { useMidiStatus } from './useMidi'
@@ -21,11 +22,11 @@ const STATE_TEXT: Record<string, string> = {
   ready: 'Connected',
 }
 
-export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
+/** Ports, the controller, this browser's copy of the library, and who wrote all this. */
+function MainTab({ onExport }: { onExport: () => void }) {
   const midi = useMidiStatus()
   const prefs = useSettings()
   const [busy, setBusy] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [receiving, setReceiving] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const received = useRef(new Map<string, LibraryEntry>())
@@ -93,10 +94,8 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
 
   const ready = midi.state === 'ready'
 
-  if (exporting) return <ExportDialog onClose={() => setExporting(false)} />
-
   return (
-    <Modal title="Control Panel" onClose={onClose}>
+    <>
       <section className="dialog-section">
         <h3>MIDI</h3>
 
@@ -214,7 +213,7 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
         <div className="dialog-actions">
           <button onClick={saveCurrent}>Save current</button>
           <button onClick={() => fileInput.current?.click()}>Import .syx</button>
-          <button onClick={() => setExporting(true)}>Export…</button>
+          <button onClick={onExport}>Export…</button>
           <button
             className={receiving ? 'primary' : undefined}
             onClick={toggleReceive}
@@ -260,6 +259,38 @@ export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
           </li>
         </ul>
       </section>
+    </>
+  )
+}
+
+const TABS = [
+  { id: 'main', label: 'Main' },
+  { id: 'libraries', label: 'Libraries' },
+] as const
+
+export function ControlPanelDialog({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('main')
+  const [exporting, setExporting] = useState(false)
+
+  if (exporting) return <ExportDialog onClose={() => setExporting(false)} />
+
+  return (
+    <Modal title="Control Panel" onClose={onClose}>
+      <div className="dialog-tabs" role="tablist" aria-label="Settings sections">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            className={tab === t.id ? 'tab selected' : 'tab'}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'main' ? <MainTab onExport={() => setExporting(true)} /> : <LibrariesTab />}
     </Modal>
   )
 }

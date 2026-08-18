@@ -871,3 +871,174 @@ button.entry {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ---- Tabs ---- */
+
+.dialog-tabs,
+.library-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #23262c;
+}
+.dialog-tabs::-webkit-scrollbar,
+.library-tabs::-webkit-scrollbar {
+  display: none;
+}
+.library-tabs {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.modal .tab,
+.library .tab {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  /* The selected tab is marked by a rule flush with the container's own border. */
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #7f868f;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.modal .tab:hover:not(.selected),
+.library .tab:hover:not(.selected) {
+  background: none;
+  color: #b7bdc6;
+}
+.modal .tab.selected,
+.library .tab.selected {
+  color: #e6c08a;
+  border-bottom-color: #d9a066;
+}
+.tab-count {
+  margin-left: 7px;
+  color: #565c66;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+/* ---- Shared library sources ---- */
+
+.source-add {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.source-add input {
+  flex: 1;
+  min-width: 0;
+  background: #0f1114;
+  border: 1px solid #2b2f36;
+  border-radius: 5px;
+  color: #dcd8ce;
+  font-size: 12px;
+  padding: 6px 9px;
+}
+.field input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  background: #14171b;
+  border: 1px solid #343943;
+  border-radius: 5px;
+  color: #cfcbc2;
+  font-size: 12px;
+  padding: 6px 7px;
+}
+
+.source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.source {
+  background: #12151a;
+  border: 1px solid #23262c;
+  border-left: 2px solid #3a3f48;
+  border-radius: 6px;
+  padding: 9px 11px;
+}
+.source.ready {
+  border-left-color: #4f8f68;
+}
+.source.loading {
+  border-left-color: #8a7a4a;
+}
+.source.error {
+  border-left-color: #8a3f2e;
+}
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.source-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+.source-name {
+  color: #dcd8ce;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.modal .source-actions button {
+  background: none;
+  border: none;
+  color: #8b929d;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+.modal .source-actions button:hover:not(:disabled) {
+  background: none;
+  color: #dcd8ce;
+}
+.modal .source-actions button.danger:hover:not(:disabled) {
+  color: #e0674a;
+}
+.source-url,
+.source-meta {
+  margin: 5px 0 0;
+  color: #5c626b;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source .hint {
+  margin: 7px 0 0;
+}
+
+/* Copying a shared patch sits where deleting an owned one does. */
+.row-keep {
+  opacity: 0;
+  flex: 0 0 auto;
+  font-size: 14px !important;
+  line-height: 1;
+}
+.library-list li:hover .row-keep,
+.row-keep:focus-visible {
+  opacity: 1;
+}
+.library button.link.row-keep:hover {
+  color: #86d3a3;
+}

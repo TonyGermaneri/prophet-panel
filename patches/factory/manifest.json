@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "Prophet-10 Rev4 Factory",
+  "description": "The Prophet-10 Rev4's own program memory, all 400 programs, captured from the instrument by Pgm Dump. Split the way the instrument addresses it: five groups per half, with FACTORY selecting the half.",
+  "author": "Tony Germaneri",
+  "collections": [
+    {
+      "id": "user-half",
+      "name": "Factory 1-5",
+      "description": "Groups 1 to 5 — the half FACTORY is off for",
+      "files": [
+        "Prophet-10 Factory Group 01.syx",
+        "Prophet-10 Factory Group 02.syx",
+        "Prophet-10 Factory Group 03.syx",
+        "Prophet-10 Factory Group 04.syx",
+        "Prophet-10 Factory Group 05.syx"
+      ]
+    },
+    {
+      "id": "factory-half",
+      "name": "Factory 6-10",
+      "description": "Groups 6 to 10 — the half FACTORY is on for",
+      "files": [
+        "Prophet-10 Factory Group 06.syx",
+        "Prophet-10 Factory Group 07.syx",
+        "Prophet-10 Factory Group 08.syx",
+        "Prophet-10 Factory Group 09.syx",
+        "Prophet-10 Factory Group 10.syx"
+      ]
+    }
+  ]
+}

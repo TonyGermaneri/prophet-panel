@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal'
 import { useLibrary } from '../ui/useLibrary'
 import { usePatchMeta } from '../state/hooks'
 import { type LibraryEntry, patchFromEntry } from './db'
+import { download } from './download'
 
 /** The instrument's own export scopes, so the choice reads the same here as on the front panel. */
 type Scope = 'program' | 'bank' | 'group' | 'user' | 'all'
@@ -17,17 +18,6 @@ const SCOPES: { id: Scope; label: string; hint: string }[] = [
   { id: 'user', label: 'User', hint: 'Everything you saved, imported or received' },
   { id: 'all', label: 'All', hint: 'The entire library' },
 ]
-
-function download(name: string, bytes: Uint8Array): void {
-  const url = URL.createObjectURL(
-    new Blob([bytes.slice().buffer], { type: 'application/octet-stream' }),
-  )
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const lib = useLibrary()

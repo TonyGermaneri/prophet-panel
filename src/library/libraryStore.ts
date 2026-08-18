@@ -15,6 +15,7 @@ import { seedFactoryPatches } from './factory'
 
 class LibraryStore {
   private byId = new Map<string, LibraryEntry>()
+  private sharedById = new Map<string, LibraryEntry>()
   private order: string[] = []
   private listeners = new Set<() => void>()
   private version = 0
@@ -33,11 +34,25 @@ class LibraryStore {
     return [...this.byId.values()]
   }
 
-  entry(id: string): LibraryEntry | undefined {
-    return this.byId.get(id)
+  /**
+   * Patches from shared repositories. Kept apart from `all` on purpose: they are not the user's to
+   * export or delete, so every scope that means "my library" keeps meaning that.
+   */
+  get shared(): LibraryEntry[] {
+    return [...this.sharedById.values()]
   }
 
-  /** The patch occupying a slot, if any. The header refuses to show a number with nothing behind it. */
+  entry(id: string): LibraryEntry | undefined {
+    return this.byId.get(id) ?? this.sharedById.get(id)
+  }
+
+  /** Replaces every shared entry at once, since a reload re-reads whole sources. */
+  setShared(entries: LibraryEntry[]): void {
+    this.sharedById = new Map(entries.map((e) => [e.id, e]))
+    this.changed()
+  }
+
+  /** The patch occupying a slot in the user's own library. Shared patches are not in any slot. */
   entryAtSlot(group: number, program: number): LibraryEntry | undefined {
     for (const entry of this.byId.values()) {
       if (entry.group === group && entry.program === program) return entry
