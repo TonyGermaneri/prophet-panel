@@ -38,12 +38,78 @@ the dev server works without TLS.
   bind the two. Bindings take precedence over pass-through: a bound message drives its panel
   control instead of reaching the synth twice. Bindings are listed on the right, can be removed
   individually or cleared, and persist.
+- **Sharing** — subscribe to a patch library published in a Git repository, or pass one around as
+  a zip. Both are described under [Sharing patches](#sharing-patches).
 - **Installable and offline** — it's a PWA. Install it from the browser's address bar to get a
   standalone window with no URL to navigate to, and the whole app plus the factory banks are
   precached, so it opens and runs with no network at all. MIDI still needs the hardware, of course.
 
 To drive the synth, set **Param Xmit** and **Param Rcv** to **NRPN** in its globals. Without that
 the panel looks connected but nothing moves.
+
+## Sharing patches
+
+Two routes, one format. A shared library is a directory holding a `manifest.json` and the `.syx`
+files it names; a zip bundle is that same directory in a file. A bundle can therefore be unpacked
+into a repository and published as-is, and a published directory can be zipped and mailed to
+someone who would rather not subscribe to anything.
+
+Under the gear icon, **Libraries** manages both.
+
+### Subscribing to a repository
+
+Paste any of these — a GitHub browse URL, a link to the manifest itself, a raw URL, or `owner/repo`
+shorthand — and each collection in the manifest appears as its own tab in the library:
+
+```
+https://github.com/TonyGermaneri/prophet-panel/tree/main/patches/factory
+```
+
+That one is this repository's own factory set: the Prophet-10's 400 programs, split into the two
+halves the instrument addresses them by. Nothing is GitHub-specific beyond the URL forms — any web
+server that serves the directory with permissive CORS works.
+
+Manifests are re-read on every load rather than cached, so a repository that gains a collection
+shows it without anyone refreshing anything. Shared patches live only in memory: they belong to
+whoever published them, so they stay out of your library and out of the export scopes until you
+copy one across with the **+** that appears on hover. Selecting a shared patch sends it to the
+synth's edit buffer and nothing else — **nothing shared can overwrite a program on the
+instrument.**
+
+### Publishing one
+
+Drop `.syx` files in a directory alongside a `manifest.json`, and push:
+
+```json
+{
+  "version": 1,
+  "name": "My Prophet Patches",
+  "description": "Optional, shown beside the source",
+  "author": "Optional",
+  "collections": [
+    {
+      "id": "pads",
+      "name": "Pads",
+      "description": "Optional, shown as the tab's tooltip",
+      "files": ["Warm Pads.syx", "Cold Pads.syx"]
+    }
+  ]
+}
+```
+
+Each collection becomes one tab. A file may be a single program or a whole bank — a bank file is
+just program-data messages concatenated, which is what the instrument's own dump produces.
+
+A manifest is content from someone else's repository, so `files` entries are validated as relative
+paths within the source directory: absolute paths, `..` segments, and anything naming another host
+are rejected rather than fetched.
+
+### Zip bundles
+
+**Export** writes a bundle with one `.syx` and one collection per bank, plus the manifest.
+**Import** accepts that, and also a plain folder of `.syx` files someone zipped up with no manifest
+at all — the filenames become the bank names. Archives written by other tools are read whether
+stored or deflated.
 
 ## Troubleshooting
 

@@ -188,7 +188,7 @@ export function LibrariesTab() {
           published folder can be zipped and sent to someone.
         </p>
 
-        <label className="field">
+        <label className="field wide">
           <span>Bundle name</span>
           <input
             type="text"
@@ -198,7 +198,7 @@ export function LibrariesTab() {
           />
         </label>
 
-        <label className="field">
+        <label className="field wide">
           <span>Contents</span>
           <select value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
             <option value="mine">My patches — saved, imported and received ({lib.all.filter((e) => e.source !== 'factory').length})</option>
