@@ -20,6 +20,8 @@ import {
   WHEELS,
 } from './layout'
 import { usePatchMeta } from '../state/hooks'
+import { useSettings } from '../ui/useBindings'
+import { modelName } from '../domain/model'
 import { bankOf, displayGroup, programInBank } from '../domain/patch'
 import './panel.css'
 
@@ -94,6 +96,10 @@ function Wheel({ wheel }: { wheel: (typeof WHEELS)['pitch'] }) {
 }
 
 export function Panel({ compact = false }: { compact?: boolean }) {
+  // Read before the early return below: toggling `compact` must not change how many hooks this
+  // component calls, or React tears down on the render where the keyboard is hidden.
+  const model = useSettings().model
+
   // Without the keyboard this is a different instrument entirely — the desktop module, which has
   // its own arrangement rather than the keyboard panel with its lower half cropped off.
   if (compact) return <DesktopPanel />
@@ -107,7 +113,7 @@ export function Panel({ compact = false }: { compact?: boolean }) {
       viewBox={`0 0 ${PANEL.width} ${height}`}
       preserveAspectRatio="xMidYMid meet"
       role="group"
-      aria-label="Prophet-10 front panel"
+      aria-label={`${modelName(model)} front panel`}
     >
       <Defs />
 

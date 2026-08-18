@@ -1,8 +1,10 @@
 import { useState } from 'react'
 
 import { bankOf, programInBank, toSyxFile } from '../domain/patch'
+import { modelName } from '../domain/model'
 import { connection } from '../midi'
 import { Modal } from '../ui/Modal'
+import { useSettings } from '../ui/useBindings'
 import { useLibrary } from '../ui/useLibrary'
 import { usePatchMeta } from '../state/hooks'
 import { type LibraryEntry, patchFromEntry } from './db'
@@ -23,6 +25,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const lib = useLibrary()
   const meta = usePatchMeta()
   const [scope, setScope] = useState<Scope>('group')
+  const model = modelName(useSettings().model)
 
   const select = (id: Scope): LibraryEntry[] => {
     const all = lib.all
@@ -50,13 +53,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       case 'program':
         return `${g}${bankOf(meta.program)}${programInBank(meta.program)} ${select('program')[0]?.name ?? 'patch'}.syx`
       case 'bank':
-        return `Prophet-10 Group ${g} Bank ${bankOf(meta.program)}.syx`
+        return `${model} Group ${g} Bank ${bankOf(meta.program)}.syx`
       case 'group':
-        return `Prophet-10 Group ${g}.syx`
+        return `${model} Group ${g}.syx`
       case 'user':
-        return 'Prophet-10 User Patches.syx'
+        return `${model} User Patches.syx`
       case 'all':
-        return 'Prophet-10 All Patches.syx'
+        return `${model} All Patches.syx`
     }
   }
 

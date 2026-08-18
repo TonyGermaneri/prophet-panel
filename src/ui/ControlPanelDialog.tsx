@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 
+import { MODEL_IDS, modelName } from '../domain/model'
 import { parseSyxFile } from '../domain/patch'
 import { entryFromPatch, type LibraryEntry, putEntries } from '../library/db'
 import { ExportDialog } from '../library/ExportDialog'
@@ -12,6 +13,7 @@ import { Modal } from './Modal'
 import { useSettings } from './useBindings'
 import { useMidiStatus } from './useMidi'
 
+// One guide covers both instruments; Sequential publishes it under the Prophet-5's name.
 const MANUAL_URL = 'https://sequential.com/wp-content/uploads/2021/02/Prophet-5-Users-Guide-1.3.pdf'
 const REPO_URL = 'https://github.com/TonyGermaneri/prophet-panel'
 
@@ -96,6 +98,28 @@ function MainTab({ onExport }: { onExport: () => void }) {
 
   return (
     <>
+      <section className="dialog-section">
+        <h3>Instrument</h3>
+        <p className="dialog-blurb">
+          Which of the two the panel is dressed as. They are the same synthesizer twice — same
+          faceplate, same parameters, same sysex — so this changes the logo and the name and
+          nothing else. Clicking the logo on the panel switches it too.
+        </p>
+        <div className="model-choice" role="radiogroup" aria-label="Instrument">
+          {MODEL_IDS.map((id) => (
+            <label key={id} className={prefs.model === id ? 'model selected' : 'model'}>
+              <input
+                type="radio"
+                name="model"
+                checked={prefs.model === id}
+                onChange={() => settings.update({ model: id })}
+              />
+              {modelName(id)}
+            </label>
+          ))}
+        </div>
+      </section>
+
       <section className="dialog-section">
         <h3>MIDI</h3>
 
@@ -241,15 +265,15 @@ function MainTab({ onExport }: { onExport: () => void }) {
         <h3>About</h3>
         <p className="byline">By Tony Germaneri</p>
         <p className="dialog-blurb">
-          A browser control surface for the Sequential Prophet-10 Rev4 — play it, edit it, and
-          load, save, send and sync patches over MIDI.
+          A browser control surface for the Sequential {modelName(prefs.model)} Rev4 — play it,
+          edit it, and load, save, send and sync patches over MIDI.
         </p>
         <ul className="dialog-links">
           <li>
             <a href={MANUAL_URL} target="_blank" rel="noopener noreferrer">
-              Prophet-5 User’s Guide (PDF)
+              Prophet-5/10 User’s Guide (PDF)
             </a>
-            <span>The instrument manual, from Sequential</span>
+            <span>The instrument manual, from Sequential — one guide covers both</span>
           </li>
           <li>
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer">

@@ -275,6 +275,31 @@
   color: #23201f;
 }
 
+/*
+ * Clicking the logo swaps the instrument, so it needs a hit area covering the whole plate rather
+ * than only the glyphs. The rule above fills every rect in the group with the plate texture, which
+ * would draw a second plate here — and a plate on the desktop module, which has none — so this
+ * clears all three of fill, stroke and shadow rather than just the fill.
+ */
+.nameplate {
+  cursor: pointer;
+}
+.nameplate .nameplate-hit {
+  fill: transparent;
+  stroke: none;
+  filter: none;
+}
+.nameplate:hover .nameplate-art {
+  opacity: 0.72;
+}
+.nameplate:focus-visible {
+  outline: none;
+}
+.nameplate:focus-visible .nameplate-hit {
+  stroke: var(--legend);
+  stroke-width: 2;
+}
+
 /* ---- Wheels and keyboard ---- */
 
 .wheel-bed {

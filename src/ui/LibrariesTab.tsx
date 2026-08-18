@@ -7,8 +7,10 @@ import { library } from '../library/libraryStore'
 import { resolveSource } from '../library/manifest'
 import { sharedLibraries } from '../library/shared'
 import { sources } from '../library/sources'
+import { modelName } from '../domain/model'
 import { connection } from '../midi'
 import { useLibrary } from './useLibrary'
+import { useSettings } from './useBindings'
 import { useShared, useSources } from './useShared'
 
 type Scope = 'mine' | 'all'
@@ -17,13 +19,14 @@ export function LibrariesTab() {
   const list = useSources()
   const shared = useShared()
   const lib = useLibrary()
+  const model = modelName(useSettings().model)
 
   const [url, setUrl] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string | null>(null)
   const [scope, setScope] = useState<Scope>('mine')
-  const [bundleName, setBundleName] = useState('Prophet-10 Patches')
+  const [bundleName, setBundleName] = useState(`${model} Patches`)
   const zipInput = useRef<HTMLInputElement>(null)
 
   const note = (message: string, ms = 3500) => {
@@ -65,7 +68,7 @@ export function LibrariesTab() {
   const chosen = scope === 'mine' ? lib.all.filter((e) => e.source !== 'factory') : lib.all
 
   const exportZip = () => {
-    const name = bundleName.trim() || 'Prophet-10 Patches'
+    const name = bundleName.trim() || `${model} Patches`
     download(
       `${name}.zip`,
       buildBundle(chosen, { name, deviceId: connection.deviceId }),
@@ -194,7 +197,7 @@ export function LibrariesTab() {
             type="text"
             value={bundleName}
             onChange={(e) => setBundleName(e.target.value)}
-            placeholder="Prophet-10 Patches"
+            placeholder={`${model} Patches`}
           />
         </label>
 

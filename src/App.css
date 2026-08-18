@@ -1046,3 +1046,30 @@ button.entry {
 .library button.link.row-keep:hover {
   color: #86d3a3;
 }
+
+/* ---- Instrument picker ---- */
+
+.model-choice {
+  display: flex;
+  gap: 7px;
+}
+.model-choice .model {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  background: #12151a;
+  border: 1px solid #2b2f36;
+  border-radius: 5px;
+  color: #9aa1ac;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 11px;
+}
+.model-choice .model input {
+  accent-color: #d9a066;
+}
+.model-choice .model.selected {
+  border-color: #6d5a3c;
+  color: #e6c08a;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { documentTitle } from './domain/model'
 import {
   bankOf,
   nextGroupInHalf,
@@ -38,6 +39,11 @@ export function App() {
   const prefs = useSettings()
   const bind = useBindings()
   const { octave, velocity } = useComputerKeyboard(true)
+
+  // The tab and the installed app's window both name the instrument that is showing.
+  useEffect(() => {
+    document.title = documentTitle(prefs.model)
+  }, [prefs.model])
 
   useEffect(() => {
     sync.follow = settings.current.follow

@@ -1,7 +1,13 @@
 # prophet-panel
 
-A browser control surface for the Sequential Prophet-10 (Rev4). It renders the front panel,
-drives the instrument live over MIDI, and loads, saves, sends and syncs patches.
+A browser control surface for the Sequential Prophet-5 and Prophet-10 (Rev4). It renders the front
+panel, drives the instrument live over MIDI, and loads, saves, sends and syncs patches.
+
+The two are the same synthesizer twice — same faceplate, same parameters, same sysex — differing in
+voice count, which a control surface cannot observe, and in the number on the logo, which it can.
+Click the logo (or use **Instrument** under the gear icon) to switch between them; it changes the
+badge, the window title and the names on exported files, and nothing else. Prophet-10 is the
+default.
 
 ```bash
 npm install
@@ -14,7 +20,8 @@ the dev server works without TLS.
 
 ## What's here
 
-- **Panel** — every knob and switch of the Rev4 faceplate, drawn as SVG. Drag a knob (shift for
+- **Panel** — every knob and switch of the Rev4 faceplate, drawn as SVG, badged as either
+  instrument. Drag a knob (shift for
   fine, double-click to reset, arrow keys when focused); click a cap to advance it.
 - **Library** — patches in IndexedDB, seeded on first run with all 400 programs from the
   instrument's own memory. Shown above the panel, five columns per group so each column is one of

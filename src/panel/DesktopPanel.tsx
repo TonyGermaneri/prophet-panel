@@ -1,5 +1,7 @@
+import { modelName } from '../domain/model'
 import { bankOf, displayGroup, programInBank } from '../domain/patch'
 import { usePatchMeta } from '../state/hooks'
+import { useSettings } from '../ui/useBindings'
 import { Defs } from './Defs'
 import { Knob } from './Knob'
 import { Logo } from './Logo'
@@ -94,6 +96,7 @@ function Display() {
  * MIDI all work unchanged.
  */
 export function DesktopPanel() {
+  const model = useSettings().model
   return (
     <MetricsProvider value={DESKTOP_METRICS}>
       <svg
@@ -101,7 +104,7 @@ export function DesktopPanel() {
         viewBox={`0 0 ${DESKTOP_PANEL.width} ${DESKTOP_PANEL.height}`}
         preserveAspectRatio="xMidYMid meet"
         role="group"
-        aria-label="Prophet-10 desktop module"
+        aria-label={`${modelName(model)} desktop module`}
       >
         <Defs />
 

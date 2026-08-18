@@ -4,6 +4,8 @@
  * synchronously during startup.
  */
 
+import { DEFAULT_MODEL, type SynthModel } from '../domain/model'
+
 const KEY = 'prophet-panel:settings'
 
 export interface Settings {
@@ -23,6 +25,8 @@ export interface Settings {
   hideKeyboard: boolean
   /** Where the library sits: a full-width strip under the header, or a column beside the panel. */
   libraryDock: 'header' | 'aside'
+  /** Which of the two instruments the panel is dressed as. Presentation only. */
+  model: SynthModel
   /**
    * Set once a connection has actually been established. Remembering the port ids is not enough
    * to reconnect on load: this records that the user has already granted MIDI access, which is
@@ -42,6 +46,7 @@ const DEFAULTS: Settings = {
   follow: true,
   hideKeyboard: false,
   libraryDock: 'header',
+  model: DEFAULT_MODEL,
   hasConnected: false,
 }
 
