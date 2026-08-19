@@ -25,6 +25,8 @@ export interface Settings {
   hideKeyboard: boolean
   /** Where the library sits: a full-width strip under the header, or a column beside the panel. */
   libraryDock: 'header' | 'aside'
+  /** How wide that column is, in pixels. Only meaningful in the `aside` dock. */
+  libraryWidth: number
   /** Which of the two instruments the panel is dressed as. Presentation only. */
   model: SynthModel
   /**
@@ -46,6 +48,7 @@ const DEFAULTS: Settings = {
   follow: true,
   hideKeyboard: false,
   libraryDock: 'header',
+  libraryWidth: 420,
   model: DEFAULT_MODEL,
   hasConnected: false,
 }

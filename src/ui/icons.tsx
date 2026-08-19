@@ -1,6 +1,6 @@
 /**
- * Header icons. Stroke-based on a 24x24 grid, inheriting `currentColor`, so they sit consistently
- * beside each other and follow the button's colour without extra styling.
+ * The app's icons. Stroke-based on a 24x24 grid, inheriting `currentColor`, so they sit
+ * consistently beside each other and follow the button's colour without extra styling.
  *
  * The cog's teeth are generated rather than drawn, which keeps them evenly spaced by construction.
  */
@@ -86,6 +86,63 @@ export function PianoIcon() {
           </g>
         )
       })}
+    </svg>
+  )
+}
+
+/**
+ * Library group actions. Read as a row of five at around fifteen pixels, so they are drawn for
+ * silhouette rather than detail: a circle, an upright page, a tray, a diagonal and a tapered can
+ * stay apart from each other at that size in a way five variations on a box would not.
+ */
+
+/** Adding what is already loaded: no file involved, so no page in it. */
+export function PlusCircleIcon() {
+  return (
+    <svg className="icon" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="M12 8.4v7.2M8.4 12h7.2" />
+    </svg>
+  )
+}
+
+export function FilePlusIcon() {
+  return (
+    <svg className="icon" {...SVG_PROPS}>
+      <path d="M13.4 3.9H7.3a1.7 1.7 0 0 0-1.7 1.7v12.8a1.7 1.7 0 0 0 1.7 1.7h9.4a1.7 1.7 0 0 0 1.7-1.7V8.6z" />
+      <path d="M13.4 3.9v4.7h4.9" />
+      <path d="M12 11.9v5.2M9.4 14.5h5.2" />
+    </svg>
+  )
+}
+
+/** Out of the tray and away, which is what an export is. */
+export function ExportIcon() {
+  return (
+    <svg className="icon" {...SVG_PROPS}>
+      <path d="M12 15V4.7" />
+      <path d="M8.3 8.4 12 4.7l3.7 3.7" />
+      <path d="M4.9 14.3V18a1.8 1.8 0 0 0 1.8 1.8h10.6a1.8 1.8 0 0 0 1.8-1.8v-3.7" />
+    </svg>
+  )
+}
+
+export function PencilIcon() {
+  return (
+    <svg className="icon" {...SVG_PROPS}>
+      <path d="M4.8 19.2h3.4L18.6 8.8a1.9 1.9 0 0 0 0-2.7l-.7-.7a1.9 1.9 0 0 0-2.7 0L4.8 15.8z" />
+      <path d="m14.4 6.8 2.8 2.8" />
+    </svg>
+  )
+}
+
+export function TrashIcon() {
+  return (
+    <svg className="icon" {...SVG_PROPS}>
+      <path d="M4.8 6.9h14.4" />
+      <path d="M9.7 6.9V5.3a1.4 1.4 0 0 1 1.4-1.4h1.8a1.4 1.4 0 0 1 1.4 1.4v1.6" />
+      <path d="m6.7 6.9.8 11.9a1.6 1.6 0 0 0 1.6 1.5h5.8a1.6 1.6 0 0 0 1.6-1.5l.8-11.9" />
+      <path d="M10.4 10.5v6.3M13.6 10.5v6.3" />
     </svg>
   )
 }

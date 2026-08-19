@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from 'react'
 
 import { slotLabel } from '../domain/patch'
 import { settings } from '../state/settings'
@@ -24,6 +24,20 @@ const PROGRAMS = 'programs'
 const USER = 'user'
 /** One tab per imported zip, keyed by the filename it arrived as. */
 const BUNDLE = 'bundle:'
+
+/**
+ * How narrow and how wide the docked column may be dragged.
+ *
+ * The floor is where a patch row stops being readable — the slot number, a twenty-character name
+ * and the row's own buttons. The ceiling only exists so a mis-drag cannot swallow the panel; past
+ * it the header dock is the better answer anyway.
+ */
+const MIN_WIDTH = 260
+const MAX_WIDTH = 900
+
+function clampWidth(width: number): number {
+  return Number.isFinite(width) ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(width))) : 420
+}
 
 /** A run of patches shown together. Grouped tabs give each block a heading; the others do not. */
 interface Block {
@@ -63,6 +77,8 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
   const [filter, setFilter] = useState('')
   const [tab, setTab] = useState<string>(PROGRAMS)
   const [note, setNote] = useState<string | null>(null)
+  /** The width being dragged to, held here so a drag does not write to storage sixty times a second. */
+  const [dragWidth, setDragWidth] = useState<number | null>(null)
   const [info, setInfo] = useState<LibraryEntry | null>(null)
   /** Null while making a new group; a group while editing one. */
   const [editing, setEditing] = useState<UserGroup | null | undefined>(undefined)
@@ -135,6 +151,36 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
   }, [shown])
 
   const otherDock = prefs.libraryDock === 'header' ? 'aside' : 'header'
+  const aside = prefs.libraryDock === 'aside'
+  const width = clampWidth(dragWidth ?? prefs.libraryWidth)
+
+  /**
+   * Drag the column's inner edge. Pointer capture keeps the drag alive over the panel, the SVG
+   * knobs and anything else that would otherwise swallow the move events.
+   */
+  const startResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const handle = event.currentTarget
+    const startX = event.clientX
+    const startWidth = width
+    handle.setPointerCapture(event.pointerId)
+
+    // The column is on the right, so dragging left makes it wider.
+    const move = (e: PointerEvent) => setDragWidth(clampWidth(startWidth + (startX - e.clientX)))
+    const stop = (e: PointerEvent) => {
+      handle.releasePointerCapture(event.pointerId)
+      handle.removeEventListener('pointermove', move)
+      handle.removeEventListener('pointerup', stop)
+      handle.removeEventListener('pointercancel', stop)
+      settings.update({ libraryWidth: clampWidth(startWidth + (startX - e.clientX)) })
+      setDragWidth(null)
+    }
+    handle.addEventListener('pointermove', move)
+    handle.addEventListener('pointerup', stop)
+    handle.addEventListener('pointercancel', stop)
+  }
+
+  const nudge = (by: number) => settings.update({ libraryWidth: clampWidth(width + by) })
 
   /**
    * Copy a shared patch into the user's own library, since the shared one is not theirs to keep.
@@ -152,7 +198,34 @@ export function LibraryPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <section className={`library dock-${prefs.libraryDock}`}>
+    <section
+      className={`library dock-${prefs.libraryDock}${dragWidth === null ? '' : ' resizing'}`}
+      style={aside ? { width, flexBasis: width } : undefined}
+    >
+      {aside && (
+        <div
+          className="library-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize library"
+          aria-valuenow={width}
+          aria-valuemin={MIN_WIDTH}
+          aria-valuemax={MAX_WIDTH}
+          tabIndex={0}
+          onPointerDown={startResize}
+          // Dragging is not the only way to reach a width, and a 6px target is a poor one.
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') nudge(16)
+            else if (e.key === 'ArrowRight') nudge(-16)
+            else if (e.key === 'Home') settings.update({ libraryWidth: MAX_WIDTH })
+            else if (e.key === 'End') settings.update({ libraryWidth: MIN_WIDTH })
+            else return
+            e.preventDefault()
+          }}
+          // A double-click on a splitter conventionally restores it.
+          onDoubleClick={() => settings.update({ libraryWidth: 420 })}
+        />
+      )}
       <div className="library-head">
         <h2>Library</h2>
         <input

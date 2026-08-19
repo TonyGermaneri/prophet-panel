@@ -1,5 +1,12 @@
 import { useRef } from 'react'
 
+import {
+  ExportIcon,
+  FilePlusIcon,
+  PencilIcon,
+  PlusCircleIcon,
+  TrashIcon,
+} from '../ui/icons'
 import { formatDate } from './PatchInfoDialog'
 import { type UserGroup } from './userGroups'
 import { addCurrentPatch, addFiles, deleteGroups, exportGroups } from './userPatches'
@@ -10,6 +17,11 @@ import { addCurrentPatch, addFiles, deleteGroups, exportGroups } from './userPat
  * Adding sits here rather than in one shared toolbar because a patch has to land somewhere: with
  * the buttons on the group, the group you clicked is the answer, and there is no hidden "current
  * folder" to get out of step with what is on screen.
+ *
+ * The actions are icons, and they are always on screen. Five words of chrome per heading would
+ * drown out the patch names underneath, but hiding them until hover made the whole tab look inert
+ * on arrival — and left the only way to add a patch undiscoverable until the pointer happened
+ * across it.
  */
 export function GroupHeader({
   group,
@@ -60,23 +72,50 @@ export function GroupHeader({
       {group.author && <span className="group-by">by {group.author}</span>}
       <span className="group-date">{formatDate(group.createdAt)}</span>
 
+      {/* Icons only, so each carries its own label for anything that is not reading the picture. */}
       <div className="group-actions">
-        <button className="link" onClick={() => void addCurrent()} title="File the patch on the panel here">
-          + Panel
+        <button
+          className="link"
+          onClick={() => void addCurrent()}
+          title={`File the patch on the panel into ${group.name}`}
+          aria-label={`File the patch on the panel into ${group.name}`}
+        >
+          <PlusCircleIcon />
         </button>
-        <button className="link" onClick={() => fileInput.current?.click()} title="Add .syx files">
-          + Files
+        <button
+          className="link"
+          onClick={() => fileInput.current?.click()}
+          title={`Add .syx files to ${group.name}`}
+          aria-label={`Add .syx files to ${group.name}`}
+        >
+          <FilePlusIcon />
         </button>
-        <button className="link" disabled={!count} onClick={send} title="Export this group as a zip">
-          Export
+        <button
+          className="link"
+          disabled={!count}
+          onClick={send}
+          title={`Export ${group.name} as a zip`}
+          aria-label={`Export ${group.name} as a zip`}
+        >
+          <ExportIcon />
         </button>
         {onEdit && (
-          <button className="link" onClick={onEdit} title="Name, author and description">
-            Edit
+          <button
+            className="link"
+            onClick={onEdit}
+            title={`Name, author and description of ${group.name}`}
+            aria-label={`Edit ${group.name}`}
+          >
+            <PencilIcon />
           </button>
         )}
-        <button className="link danger" onClick={() => void remove()} title="Delete the group and its patches">
-          Delete
+        <button
+          className="link danger"
+          onClick={() => void remove()}
+          title={`Delete ${group.name} and its patches`}
+          aria-label={`Delete ${group.name} and its patches`}
+        >
+          <TrashIcon />
         </button>
       </div>
 
