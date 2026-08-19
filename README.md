@@ -1,5 +1,7 @@
 # prophet-panel
 
+**<https://tonygermaneri.github.io/prophet-panel/>**
+
 A browser control surface for the Sequential Prophet-5 and Prophet-10 (Rev4). It renders the front
 panel, drives the instrument live over MIDI, and loads, saves, sends and syncs patches.
 
@@ -25,11 +27,12 @@ the dev server works without TLS.
   fine, double-click to reset, arrow keys when focused); click a cap to advance it.
 - **Library** — patches in IndexedDB, seeded on first run with all 400 programs from the
   instrument's own memory. Shown above the panel, five columns per group so each column is one of
-  the instrument's banks, numbered exactly as the synth numbers them.
-  Import and export `.syx`, save the current panel state, send a patch to the synth, or pull
-  programs off the instrument via **Receive dump**. The `−`/`+` buttons beside the patch number step through the
-  library — not the instrument's own program memory — and follow the search filter when one is
-  active, so stepping stays inside what the panel is showing.
+  the instrument's banks, numbered exactly as the synth numbers them. The **Programs** tab is that
+  memory — the factory set plus anything pulled off the synth via **Receive dump**, addressed by
+  slot. Export `.syx`, send a patch to the synth, or step the library with the `−`/`+` buttons
+  beside the patch number — those walk the library rather than the instrument's own program memory,
+  and follow the search filter when one is active, so stepping stays inside what the panel is
+  showing.
 - **MIDI** — panel edits stream out as NRPN; hardware knob moves come back and move the on-screen
   control. Sysex handles whole-patch transfer. Port choices are remembered between sessions.
 - **Play from the computer keyboard** — `A`–`K` for white keys, `W`–`U` for sharps, `Z`/`X` to
@@ -45,6 +48,10 @@ the dev server works without TLS.
   bind the two. Bindings take precedence over pass-through: a bound message drives its panel
   control instead of reaching the synth twice. Bindings are listed on the right, can be removed
   individually or cleared, and persist.
+- **Your own patches** — the **User** tab files patches into groups you name, rather than into the
+  instrument's 400 slots. Everything you save or import lands there. Save the panel's current sound
+  into a group or drop in any `.syx` files, give each patch an author, a description and tags, and
+  export the whole group as a zip. Described under [Your own groups](#your-own-groups).
 - **Sharing** — subscribe to a patch library published in a Git repository, or pass one around as
   a zip. Both are described under [Sharing patches](#sharing-patches).
 - **Installable and offline** — it's a PWA. Install it from the browser's address bar to get a
@@ -93,12 +100,24 @@ Drop `.syx` files in a directory alongside a `manifest.json`, and push:
   "name": "My Prophet Patches",
   "description": "Optional, shown beside the source",
   "author": "Optional",
+  "createdAt": "2026-08-19T00:00:00.000Z",
   "collections": [
     {
       "id": "pads",
       "name": "Pads",
       "description": "Optional, shown as the tab's tooltip",
-      "files": ["Warm Pads.syx", "Cold Pads.syx"]
+      "author": "Optional, overrides the bundle's",
+      "files": ["Warm Pads.syx", "Cold Pads.syx"],
+      "patches": [
+        {
+          "index": 0,
+          "name": "GLASS HOUSE",
+          "author": "Optional",
+          "description": "Bell-like, long release",
+          "tags": ["pad", "bright"],
+          "createdAt": "2026-07-04T00:00:00.000Z"
+        }
+      ]
     }
   ]
 }
@@ -107,16 +126,55 @@ Drop `.syx` files in a directory alongside a `manifest.json`, and push:
 Each collection becomes one tab. A file may be a single program or a whole bank — a bank file is
 just program-data messages concatenated, which is what the instrument's own dump produces.
 
+Everything but `version`, `name`, and each collection's `name` and `files` is optional. `patches`
+is where authorship lives: a program has twenty characters of upper case for its name and nowhere
+at all for a byline, so anything more than that is said here, beside the files, where it stays
+readable and diffable in the repository. `index` counts programs across the collection's files in
+the order `files` lists them, so a collection of two forty-program banks is indexed 0–79. Entries
+that are malformed are dropped without costing the programs they describe.
+
 A manifest is content from someone else's repository, so `files` entries are validated as relative
 paths within the source directory: absolute paths, `..` segments, and anything naming another host
 are rejected rather than fetched.
 
 ### Zip bundles
 
-**Export** writes a bundle with one `.syx` and one collection per bank, plus the manifest.
-**Import** accepts that, and also a plain folder of `.syx` files someone zipped up with no manifest
-at all — the filenames become the bank names. Archives written by other tools are read whether
-stored or deflated.
+**Export** writes a bundle with one `.syx` and one collection per bank or group, plus the manifest.
+**Import** adds a tab of its own named after the file, holding the bundle's groups. It accepts a
+plain folder of `.syx` files someone zipped up with no manifest at all — the filenames become the
+group names — and archives written by other tools are read whether stored or deflated.
+
+Importing the same filename again **replaces** what the previous import left rather than stacking a
+second tab beside it, so keeping up with a bundle that is being published is a matter of exporting,
+committing, and re-importing.
+
+## Your own groups
+
+The **User** tab holds patches filed by name rather than by slot. **Programs** is the instrument's
+memory — ten groups of forty — which is the wrong shape for sounds still being worked on: they
+arrive as arbitrary files, come from anywhere, and want to be filed by what they are. A group is
+that filing.
+
+**Save current** and **Import .syx** under the gear icon both file into a group, chosen there; the
+first save makes one called *My Patches* if none exists yet. **Receive dump** is the exception and
+goes to Programs, because every program in a dump carries the slot it came from — and so does a
+shared patch copied across with **+**.
+
+**New group** names one and records who made it and what it is for. On each group:
+
+- **+ Panel** files the sound currently on the panel, byte for byte.
+- **+ Files** takes any `.syx` files — one program or a whole bank each.
+- **Export** writes the group out as a zip, in the same format a shared repository holds, so an
+  exported group can be unpacked into a repo and published without conversion.
+- **Edit** and **Delete** change the group's details or remove it and its patches together.
+
+The **i** beside a patch opens its details: name, author, description, tags, and which group it is
+in. The name is the instrument's own twenty characters and travels inside the patch; the rest
+travels beside it, in the manifest of any bundle the group is exported into — and comes back when
+that bundle is imported, or when a subscribed repository publishes one.
+
+Patches in a group are listed in the order they were added, which is the order a bundle writes them
+in, which is what keeps the per-patch details attached to the right sounds across a round trip.
 
 ## Troubleshooting
 

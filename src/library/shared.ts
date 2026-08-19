@@ -9,9 +9,15 @@
  */
 
 import { type Patch, parseSyxFile } from '../domain/patch'
-import { type LibraryEntry } from './db'
+import { type LibraryEntry, type PatchMeta } from './db'
 import { library } from './libraryStore'
-import { fetchManifest, resolveFile, type SharedManifest } from './manifest'
+import {
+  fetchManifest,
+  fromIsoDate,
+  resolveFile,
+  type SharedManifest,
+  type SharedPatchMeta,
+} from './manifest'
 import { type LibrarySource, sources } from './sources'
 
 export type SourceState = 'idle' | 'loading' | 'ready' | 'error'
@@ -41,11 +47,20 @@ function fileLabel(path: string): string {
   return (path.split('/').pop() ?? path).replace(/\.syx$/i, '')
 }
 
+/** A manifest's byline for one program, if it gave one. */
+function metaFrom(m: SharedPatchMeta | undefined): PatchMeta | undefined {
+  if (!m) return undefined
+  const createdAt = fromIsoDate(m.createdAt)
+  if (!m.author && !m.description && !m.tags?.length && !createdAt) return undefined
+  return { author: m.author, description: m.description, tags: m.tags, createdAt }
+}
+
 function toEntry(
   patch: Patch,
   bank: string,
   id: string,
   collectionKey: string,
+  meta: PatchMeta | undefined,
 ): LibraryEntry {
   return {
     id,
@@ -56,6 +71,7 @@ function toEntry(
     source: 'shared',
     bank,
     collectionKey,
+    meta,
     updatedAt: 0,
   }
 }
@@ -107,6 +123,10 @@ class SharedLibraries {
       for (const collection of manifest.collections) {
         const key = `${source.id}:${collection.id}`
         const entries: LibraryEntry[] = []
+        // The manifest indexes its bylines across the collection's files in the order it lists
+        // them, so the running count has to survive a file that failed to load.
+        const bylines = new Map((collection.patches ?? []).map((m) => [m.index, m]))
+        let index = 0
         for (const [i, file] of collection.files.entries()) {
           let bytes: Uint8Array
           try {
@@ -119,7 +139,15 @@ class SharedLibraries {
             continue
           }
           parseSyxFile(bytes).forEach((patch, j) => {
-            entries.push(toEntry(patch, fileLabel(file), `shared:${key}:${i}:${j}`, key))
+            entries.push(
+              toEntry(
+                patch,
+                fileLabel(file),
+                `shared:${key}:${i}:${j}`,
+                key,
+                metaFrom(bylines.get(index++)),
+              ),
+            )
           })
         }
         patches += entries.length

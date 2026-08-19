@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { initPatch } from '../../domain/patch'
 import { entryFromPatch, type LibraryEntry } from '../db'
-import { library } from '../libraryStore'
+import { groupOrder, library } from '../libraryStore'
 
 function seed(names: string[]): LibraryEntry[] {
   const patch = initPatch()
@@ -78,5 +78,28 @@ describe('stepping through the library', () => {
   it('reports position for the stepper’s enabled state', () => {
     library.select('id-1')
     expect(library.position).toEqual({ index: 1, total: 3 })
+  })
+})
+
+describe('the order a group holds its patches in', () => {
+  const at = (name: string, createdAt: number | undefined, updatedAt: number): LibraryEntry => ({
+    ...entryFromPatch({ ...initPatch(), name }, 'Pads', 'user', name),
+    meta: createdAt === undefined ? undefined : { createdAt },
+    updatedAt,
+  })
+
+  it('files patches as they were added, oldest first', () => {
+    const order = groupOrder([at('C', 300, 0), at('A', 100, 0), at('B', 200, 0)])
+    expect(order.map((e) => e.name)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('falls back to when the row was written for a patch with no recorded date', () => {
+    const order = groupOrder([at('LATER', undefined, 900), at('EARLIER', undefined, 100)])
+    expect(order.map((e) => e.name)).toEqual(['EARLIER', 'LATER'])
+  })
+
+  it('breaks a tie by name, so the same millisecond still orders the same way twice', () => {
+    const order = groupOrder([at('B', 5, 5), at('A', 5, 5)])
+    expect(order.map((e) => e.name)).toEqual(['A', 'B'])
   })
 })

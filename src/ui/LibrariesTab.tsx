@@ -1,32 +1,34 @@
 import { useRef, useState } from 'react'
 
-import { buildBundle, readBundle } from '../library/bundle'
-import { putEntries } from '../library/db'
+import { buildBundle } from '../library/bundle'
 import { download } from '../library/download'
-import { library } from '../library/libraryStore'
 import { resolveSource } from '../library/manifest'
 import { sharedLibraries } from '../library/shared'
 import { sources } from '../library/sources'
+import { exportGroups, importBundle, summariseImport } from '../library/userPatches'
 import { modelName } from '../domain/model'
 import { connection } from '../midi'
 import { useLibrary } from './useLibrary'
 import { useSettings } from './useBindings'
 import { useShared, useSources } from './useShared'
+import { useUserGroups } from './useUserGroups'
 
+/** The two library-wide scopes; anything else is one user group, addressed by its id. */
 type Scope = 'mine' | 'all'
 
 export function LibrariesTab() {
   const list = useSources()
   const shared = useShared()
   const lib = useLibrary()
+  const groups = useUserGroups()
   const model = modelName(useSettings().model)
 
   const [url, setUrl] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string | null>(null)
-  const [scope, setScope] = useState<Scope>('mine')
-  const [bundleName, setBundleName] = useState(`${model} Patches`)
+  const [scope, setScope] = useState<Scope | string>('mine')
+  const [bundleName, setBundleName] = useState('')
   const zipInput = useRef<HTMLInputElement>(null)
 
   const note = (message: string, ms = 3500) => {
@@ -65,13 +67,23 @@ export function LibrariesTab() {
     sharedLibraries.forget(id)
   }
 
-  const chosen = scope === 'mine' ? lib.all.filter((e) => e.source !== 'factory') : lib.all
+  const group = groups.own.find((g) => g.id === scope)
+  const chosen = group
+    ? lib.inGroup(group.id)
+    : scope === 'mine'
+      ? lib.all.filter((e) => e.source !== 'factory')
+      : lib.all
 
   const exportZip = () => {
-    const name = bundleName.trim() || `${model} Patches`
+    const name = bundleName.trim() || group?.name || `${model} Patches`
+    // A group carries its own byline into the manifest; a library-wide scope has none to carry.
+    if (group) {
+      exportGroups([group], name)
+      return
+    }
     download(
       `${name}.zip`,
-      buildBundle(chosen, { name, deviceId: connection.deviceId }),
+      buildBundle(chosen, { name, createdAt: Date.now(), deviceId: connection.deviceId }),
       'application/zip',
     )
   }
@@ -80,15 +92,12 @@ export function LibrariesTab() {
     const file = files?.[0]
     if (!file) return
     try {
-      const bundle = await readBundle(new Uint8Array(await file.arrayBuffer()))
-      if (!bundle.entries.length) {
+      const result = await importBundle(file)
+      if (!result.patches) {
         note('No patches found in that zip')
         return
       }
-      await putEntries(bundle.entries)
-      await library.refresh()
-      const skipped = bundle.skipped.length ? `, ${bundle.skipped.length} file(s) skipped` : ''
-      note(`Imported ${bundle.entries.length} patches${skipped}`)
+      note(summariseImport(result))
     } catch (error) {
       note(error instanceof Error ? error.message : String(error), 6000)
     }
@@ -187,8 +196,9 @@ export function LibrariesTab() {
         <h3>Share as a file</h3>
         <p className="dialog-blurb">
           A zip holds the same thing a shared folder does — a manifest and one <code>.syx</code>{' '}
-          per bank — so a zip can be unpacked straight into a repository and published, and a
-          published folder can be zipped and sent to someone.
+          per bank or group — so a zip can be unpacked straight into a repository and published,
+          and a published folder can be zipped and sent to someone. Importing one adds a tab of its
+          own named after the file; importing the same filename again replaces what it left behind.
         </p>
 
         <label className="field wide">
@@ -197,15 +207,23 @@ export function LibrariesTab() {
             type="text"
             value={bundleName}
             onChange={(e) => setBundleName(e.target.value)}
-            placeholder={`${model} Patches`}
+            placeholder={group?.name ?? `${model} Patches`}
           />
         </label>
 
         <label className="field wide">
           <span>Contents</span>
-          <select value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
-            <option value="mine">My patches — saved, imported and received ({lib.all.filter((e) => e.source !== 'factory').length})</option>
+          <select value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="mine">
+              Everything of yours — saved, imported, received and grouped (
+              {lib.all.filter((e) => e.source !== 'factory').length})
+            </option>
             <option value="all">Everything in the library ({lib.all.length})</option>
+            {groups.own.map((g) => (
+              <option key={g.id} value={g.id}>
+                Group: {g.name} ({lib.inGroup(g.id).length})
+              </option>
+            ))}
           </select>
         </label>
 

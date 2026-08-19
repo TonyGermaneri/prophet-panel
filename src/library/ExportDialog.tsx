@@ -17,7 +17,7 @@ const SCOPES: { id: Scope; label: string; hint: string }[] = [
   { id: 'program', label: 'Program', hint: 'The patch currently selected' },
   { id: 'bank', label: 'Bank', hint: 'The eight patches in the current bank' },
   { id: 'group', label: 'Group', hint: 'All forty patches in the current group' },
-  { id: 'user', label: 'User', hint: 'Everything you saved, imported or received' },
+  { id: 'user', label: 'User', hint: 'Everything of yours — grouped or not' },
   { id: 'all', label: 'All', hint: 'The entire library' },
 ]
 

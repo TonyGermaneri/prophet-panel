@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { parseSyxFile } from '../../domain/patch'
-import { buildBundle, readBundle } from '../bundle'
+import { buildBundle, buildBundleFrom, readBundle } from '../bundle'
 import { entryFromPatch, type LibraryEntry } from '../db'
 import { parseManifest } from '../manifest'
 import { readZip, writeZip } from '../zip'
@@ -148,5 +148,89 @@ describe('readBundle', () => {
     expect(manifest).toBeUndefined()
     expect(entries.length).toBe(40)
     expect(entries[0].bank).toBe('Group 8')
+  })
+})
+
+describe('bundles of user groups', () => {
+  /** A group is a folder of arbitrary files, so its order is as-added rather than by slot. */
+  const section = (name: string, group: number) => ({
+    name,
+    description: `About ${name}`,
+    author: 'Tony Germaneri',
+    createdAt: Date.UTC(2026, 0, 2),
+    entries: factoryEntries(group, name).slice(0, 3),
+  })
+
+  it('carries a group description, author and date into the manifest', async () => {
+    const zip = buildBundleFrom([section('Pads', 9)], { ...options, createdAt: Date.UTC(2026, 0, 3) })
+    const { manifest, groups } = await readBundle(zip)
+    expect(manifest?.createdAt).toBe(new Date(Date.UTC(2026, 0, 3)).toISOString())
+    expect(groups).toHaveLength(1)
+    expect(groups[0].name).toBe('Pads')
+    expect(groups[0].description).toBe('About Pads')
+    expect(groups[0].author).toBe('Tony Germaneri')
+    expect(groups[0].createdAt).toBe(Date.UTC(2026, 0, 2))
+  })
+
+  it('round-trips the byline attached to one patch', async () => {
+    const written = Date.UTC(2025, 5, 6)
+    const one = section('Leads', 10)
+    one.entries[1] = {
+      ...one.entries[1],
+      meta: { author: 'Someone Else', description: 'Screaming', tags: ['lead', 'bright'], createdAt: written },
+    }
+    const { groups } = await readBundle(buildBundleFrom([one], options))
+    expect(groups[0].entries[1].meta).toEqual({
+      author: 'Someone Else',
+      description: 'Screaming',
+      tags: ['lead', 'bright'],
+      createdAt: written,
+    })
+    // Patches with nothing to say stay unadorned rather than gaining an empty record.
+    expect(groups[0].entries[0].meta).toBeUndefined()
+  })
+
+  it('keeps each group in its own file and its own tab', async () => {
+    const zip = buildBundleFrom([section('Pads', 1), section('Leads', 2)], options)
+    const files = await readZip(zip)
+    expect(files.map((f) => f.name)).toEqual(['manifest.json', 'Pads.syx', 'Leads.syx'])
+    const { groups } = await readBundle(zip)
+    expect(groups.map((g) => g.name)).toEqual(['Pads', 'Leads'])
+    expect(groups.map((g) => g.entries.length)).toEqual([3, 3])
+  })
+
+  it('preserves the order a group holds its patches in', async () => {
+    const shuffled = { name: 'Working', entries: [...factoryEntries(1, 'Working').slice(0, 5)].reverse() }
+    const { groups } = await readBundle(buildBundleFrom([shuffled], options))
+    expect(groups[0].entries.map((e) => e.program)).toEqual([4, 3, 2, 1, 0])
+  })
+
+  it('gives a manifest-less zip one group per file', async () => {
+    const raw = readFileSync(join(ROOT, 'Prophet-10 Factory Group 09.syx'))
+    const { groups } = await readBundle(
+      writeZip([
+        { name: 'Pads.syx', data: new Uint8Array(raw) },
+        { name: 'nested/Leads.syx', data: new Uint8Array(raw) },
+      ]),
+    )
+    expect(groups.map((g) => g.name)).toEqual(['Pads', 'Leads'])
+  })
+
+  it('still imports files the manifest forgot to list', async () => {
+    const raw = new Uint8Array(readFileSync(join(ROOT, 'Prophet-10 Factory Group 10.syx')))
+    const zip = await readZip(buildBundleFrom([section('Pads', 1)], options))
+    const { groups } = await readBundle(
+      writeZip([...zip, { name: 'Strays.syx', data: raw }]),
+    )
+    expect(groups.map((g) => g.name)).toEqual(['Pads', 'Strays'])
+  })
+
+  it('reports a file the manifest names but the zip does not hold', async () => {
+    const zip = await readZip(buildBundleFrom([section('Pads', 1)], options))
+    const { groups, skipped } = await readBundle(
+      writeZip(zip.filter((f) => f.name === 'manifest.json')),
+    )
+    expect(groups).toEqual([])
+    expect(skipped).toEqual(['Pads.syx'])
   })
 })

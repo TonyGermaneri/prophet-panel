@@ -12,6 +12,23 @@
 
 import { allEntries, type LibraryEntry } from './db'
 import { seedFactoryPatches } from './factory'
+import { userGroups } from './userGroups'
+
+/**
+ * The order a user group holds its patches in: as added, oldest first.
+ *
+ * Grouped patches have no meaningful slot to sort by — a group is a folder of arbitrary files, and
+ * two of them naming program 1A1 is normal — so the sequence they were filed in is the only order
+ * that stays put. It is also the order a bundle writes them in, which is what lets a group's
+ * per-patch metadata survive the round trip through a zip.
+ */
+export function groupOrder(entries: LibraryEntry[]): LibraryEntry[] {
+  return [...entries].sort(
+    (a, b) =>
+      (a.meta?.createdAt ?? a.updatedAt) - (b.meta?.createdAt ?? b.updatedAt) ||
+      a.name.localeCompare(b.name),
+  )
+}
 
 class LibraryStore {
   private byId = new Map<string, LibraryEntry>()
@@ -32,6 +49,20 @@ class LibraryStore {
 
   get all(): LibraryEntry[] {
     return [...this.byId.values()]
+  }
+
+  /**
+   * Patches addressed by slot rather than filed into a user group. This is what "My Patches" shows:
+   * a grouped patch has a tab of its own, and listing it in both would only invite deleting it from
+   * the place that looks like a copy.
+   */
+  get ungrouped(): LibraryEntry[] {
+    return this.all.filter((e) => !e.groupId)
+  }
+
+  /** One user group's patches, in the order the group holds them. */
+  inGroup(groupId: string): LibraryEntry[] {
+    return groupOrder(this.all.filter((e) => e.groupId === groupId))
   }
 
   /**
@@ -70,6 +101,7 @@ class LibraryStore {
 
   async init(): Promise<void> {
     await seedFactoryPatches()
+    await userGroups.load()
     await this.refresh()
   }
 

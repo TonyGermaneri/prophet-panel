@@ -1073,3 +1073,139 @@ button.entry {
   border-color: #6d5a3c;
   color: #e6c08a;
 }
+
+/* ---- User groups ---- */
+
+/*
+ * The strip under the tabs. It acts on a whole tab — making groups, taking a zip in, sending one
+ * back out — so it sits above the list rather than inside it.
+ */
+.user-tools {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-bottom: 1px solid #1c1f25;
+}
+.user-tools-note {
+  color: #5c626b;
+  font-size: 11px;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-note {
+  flex: 0 0 auto;
+  padding: 5px 13px 0;
+}
+
+.library-block + .library-block {
+  margin-top: 6px;
+}
+
+/*
+ * A group's heading carries the group's own actions. They are hidden until the block is hovered or
+ * focused within, because five words of chrome above every group would drown out the patches.
+ */
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 13px 3px;
+  border-top: 1px solid #1c1f25;
+}
+.library-block:first-child .group-head {
+  border-top: none;
+}
+.group-head h3 {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #c9a273;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-by,
+.group-date {
+  color: #565c66;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.group-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.group-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 90ms linear;
+}
+.library-block:hover .group-actions,
+.group-actions:focus-within {
+  opacity: 1;
+}
+.group-empty {
+  padding: 4px 15px 10px;
+  font-size: 12px;
+}
+
+/* Sits beside the delete cross, and appears with it. */
+.row-info {
+  opacity: 0;
+  flex: 0 0 auto;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  line-height: 1;
+}
+.library-list li:hover .row-info,
+.row-info:focus-visible {
+  opacity: 1;
+}
+.library button.link.row-info:hover {
+  color: #e6c08a;
+}
+
+/* ---- Patch and group details ---- */
+
+.field.wide.top {
+  align-items: flex-start;
+}
+.field textarea {
+  flex: 1;
+  min-width: 0;
+  background: #14171b;
+  border: 1px solid #343943;
+  border-radius: 5px;
+  color: #cfcbc2;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 7px;
+  resize: vertical;
+}
+.field .patch-name {
+  text-transform: uppercase;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1.4px;
+}
+
+.patch-meta {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 6px 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.patch-meta dt {
+  color: #7f868f;
+}
+.patch-meta dd {
+  margin: 0;
+  color: #cfcbc2;
+  overflow-wrap: anywhere;
+}

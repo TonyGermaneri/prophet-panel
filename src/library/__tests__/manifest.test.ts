@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { parseManifest, resolveFile, resolveSource } from '../manifest'
+import { fromIsoDate, parseManifest, resolveFile, resolveSource, toIsoDate } from '../manifest'
 
 const RAW = 'https://raw.githubusercontent.com/TonyGermaneri/prophet-panel/'
 
@@ -123,5 +123,82 @@ describe('parseManifest', () => {
     for (const value of [null, 'text', 42, []]) {
       expect(() => parseManifest(value)).toThrow()
     }
+  })
+})
+
+describe('patch metadata', () => {
+  const base = {
+    version: 1,
+    name: 'Pads',
+    collections: [{ id: 'pads', name: 'Pads', files: ['Pads.syx'] }],
+  }
+
+  it('reads authorship off a collection', () => {
+    const manifest = parseManifest({
+      ...base,
+      createdAt: '2026-08-19T00:00:00.000Z',
+      collections: [
+        {
+          ...base.collections[0],
+          author: 'Tony Germaneri',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          patches: [
+            {
+              index: 2,
+              name: 'GLASS',
+              author: 'Tony Germaneri',
+              description: 'Bell-like',
+              tags: ['pad', 'bright'],
+              createdAt: '2026-07-04T00:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    })
+    expect(manifest.createdAt).toBe('2026-08-19T00:00:00.000Z')
+    expect(manifest.collections[0].author).toBe('Tony Germaneri')
+    expect(manifest.collections[0].patches).toEqual([
+      {
+        index: 2,
+        name: 'GLASS',
+        author: 'Tony Germaneri',
+        description: 'Bell-like',
+        tags: ['pad', 'bright'],
+        createdAt: '2026-07-04T00:00:00.000Z',
+      },
+    ])
+  })
+
+  it('drops malformed bylines rather than rejecting the manifest they are in', () => {
+    const manifest = parseManifest({
+      ...base,
+      collections: [
+        {
+          ...base.collections[0],
+          patches: [
+            'not an object',
+            { index: -1, author: 'Nobody' },
+            { index: 1.5, author: 'Nobody' },
+            { author: 'Nobody' },
+            { index: 0, author: 'Tony', tags: ['pad', 7, '  '] },
+          ],
+        },
+      ],
+    })
+    expect(manifest.collections[0].patches).toEqual([{ index: 0, author: 'Tony', tags: ['pad'] }])
+  })
+
+  it('treats an absent patch list as absent, not as an empty one', () => {
+    expect(parseManifest(base).collections[0].patches).toBeUndefined()
+    expect(parseManifest({ ...base, collections: [{ ...base.collections[0], patches: [] }] })
+      .collections[0].patches).toBeUndefined()
+  })
+
+  it('round-trips dates through the ISO form a manifest carries', () => {
+    const ms = Date.UTC(2026, 7, 19, 12, 30)
+    expect(fromIsoDate(toIsoDate(ms))).toBe(ms)
+    expect(toIsoDate(undefined)).toBeUndefined()
+    expect(fromIsoDate('not a date')).toBeUndefined()
+    expect(fromIsoDate('   ')).toBeUndefined()
   })
 })

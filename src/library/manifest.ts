@@ -10,14 +10,35 @@
  * files inside its own directory, and that is all: file references are validated as relative paths
  * that cannot climb out of the directory or address another host, so a manifest cannot use this app
  * to fetch something the user did not point it at.
+ *
+ * Authorship travels here too. A .syx program has no room for a byline, a date or a sentence about
+ * what the sound is for, so the manifest carries them alongside the files — which also means they
+ * are readable and diffable in the repository rather than buried in a binary.
  */
+
+/**
+ * What a manifest says about one program. `index` counts programs across the collection's files in
+ * the order `files` lists them, so metadata survives a reader that merges the files into one list.
+ */
+export interface SharedPatchMeta {
+  index: number
+  name?: string
+  author?: string
+  description?: string
+  tags?: string[]
+  /** ISO 8601. A committed manifest should read as text, not as an epoch integer. */
+  createdAt?: string
+}
 
 export interface SharedCollection {
   id: string
   name: string
   description?: string
+  author?: string
+  createdAt?: string
   /** Paths relative to the manifest's own directory. */
   files: string[]
+  patches?: SharedPatchMeta[]
 }
 
 export interface SharedManifest {
@@ -25,7 +46,19 @@ export interface SharedManifest {
   name: string
   description?: string
   author?: string
+  createdAt?: string
   collections: SharedCollection[]
+}
+
+/** Epoch milliseconds to the manifest's date form, and back. Either may legitimately be absent. */
+export function toIsoDate(ms: number | undefined): string | undefined {
+  return typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString() : undefined
+}
+
+export function fromIsoDate(text: string | undefined): number | undefined {
+  if (typeof text !== 'string' || !text.trim()) return undefined
+  const ms = Date.parse(text)
+  return Number.isNaN(ms) ? undefined : ms
 }
 
 export const MANIFEST_FILE = 'manifest.json'
@@ -105,6 +138,37 @@ function asString(value: unknown, field: string): string {
   return value.trim()
 }
 
+/** Optional prose. Anything that is not a non-empty string simply is not there. */
+function optional(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+/**
+ * Patch metadata is decoration: a malformed entry costs its own byline, never the programs. So
+ * unlike `files`, nothing here throws — bad values are dropped and the rest is kept.
+ */
+function parsePatchMeta(value: unknown): SharedPatchMeta[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const list: SharedPatchMeta[] = []
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') continue
+    const p = raw as Record<string, unknown>
+    if (typeof p.index !== 'number' || !Number.isInteger(p.index) || p.index < 0) continue
+    const tags = Array.isArray(p.tags)
+      ? p.tags.filter((t): t is string => typeof t === 'string' && !!t.trim()).map((t) => t.trim())
+      : undefined
+    list.push({
+      index: p.index,
+      name: optional(p.name),
+      author: optional(p.author),
+      description: optional(p.description),
+      tags: tags?.length ? tags : undefined,
+      createdAt: optional(p.createdAt),
+    })
+  }
+  return list.length ? list : undefined
+}
+
 /**
  * A file reference has to stay inside the source directory. Rejecting schemes, absolute paths and
  * `..` segments is what keeps a manifest from pointing the app at an unrelated host or walking up
@@ -149,10 +213,13 @@ export function parseManifest(json: unknown): SharedManifest {
       id: typeof c.id === 'string' && c.id.trim() ? c.id.trim() : `collection-${i + 1}`,
       name: asString(c.name, `collection ${i + 1} name`),
       description: typeof c.description === 'string' ? c.description : undefined,
+      author: optional(c.author),
+      createdAt: optional(c.createdAt),
       files: c.files.map((f, j) => {
         if (typeof f !== 'string') throw new Error(`Collection ${i + 1} file ${j + 1} is not a path`)
         return f
       }),
+      patches: parsePatchMeta(c.patches),
     }
   })
 
@@ -161,6 +228,7 @@ export function parseManifest(json: unknown): SharedManifest {
     name: asString(raw.name, 'name'),
     description: typeof raw.description === 'string' ? raw.description : undefined,
     author: typeof raw.author === 'string' ? raw.author : undefined,
+    createdAt: optional(raw.createdAt),
     collections,
   }
 }

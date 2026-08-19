@@ -1,17 +1,17 @@
 import { useRef, useState } from 'react'
 
 import { MODEL_IDS, modelName } from '../domain/model'
-import { parseSyxFile } from '../domain/patch'
 import { entryFromPatch, type LibraryEntry, putEntries } from '../library/db'
 import { ExportDialog } from '../library/ExportDialog'
 import { library } from '../library/libraryStore'
+import { addCurrentPatch, addFiles, defaultGroup } from '../library/userPatches'
 import { connection, sync } from '../midi'
 import { settings } from '../state/settings'
-import { store } from '../state/store'
 import { LibrariesTab } from './LibrariesTab'
 import { Modal } from './Modal'
 import { useSettings } from './useBindings'
 import { useMidiStatus } from './useMidi'
+import { useUserGroups } from './useUserGroups'
 
 // One guide covers both instruments; Sequential publishes it under the Prophet-5's name.
 const MANUAL_URL = 'https://sequential.com/wp-content/uploads/2021/02/Prophet-5-Users-Guide-1.3.pdf'
@@ -28,11 +28,19 @@ const STATE_TEXT: Record<string, string> = {
 function MainTab({ onExport }: { onExport: () => void }) {
   const midi = useMidiStatus()
   const prefs = useSettings()
+  const groups = useUserGroups()
   const [busy, setBusy] = useState(false)
   const [receiving, setReceiving] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
+  /** Which user group saves and imports are filed into; empty until there is one to pick. */
+  const [groupId, setGroupId] = useState('')
   const received = useRef(new Map<string, LibraryEntry>())
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const note = (message: string, ms = 3000) => {
+    setProgress(message)
+    window.setTimeout(() => setProgress((current) => (current === message ? null : current)), ms)
+  }
 
   const connect = async () => {
     setBusy(true)
@@ -41,27 +49,27 @@ function MainTab({ onExport }: { onExport: () => void }) {
     setBusy(false)
   }
 
+  // A group deleted from the User tab leaves the picker naming something that is no longer there.
+  const chosen = groups.own.find((g) => g.id === groupId) ?? groups.own[0]
+
   const saveCurrent = async () => {
-    await putEntries([entryFromPatch(store.snapshot(), 'My Patches', 'user')])
-    await library.refresh()
-    setProgress('Saved to My Patches')
-    window.setTimeout(() => setProgress(null), 2500)
+    const group = chosen ?? (await defaultGroup())
+    const entry = await addCurrentPatch(group.id)
+    note(`Saved ${entry.name} to ${group.name}`)
   }
 
   const importFiles = async (files: FileList | null) => {
     if (!files?.length) return
-    const added: LibraryEntry[] = []
-    for (const file of files) {
-      const bytes = new Uint8Array(await file.arrayBuffer())
-      const bank = file.name.replace(/\.syx$/i, '')
-      for (const patch of parseSyxFile(bytes)) added.push(entryFromPatch(patch, bank, 'import'))
-    }
-    if (added.length) {
-      await putEntries(added)
-      await library.refresh()
-    }
-    setProgress(added.length ? `Imported ${added.length} patches` : 'No patches found in file')
-    window.setTimeout(() => setProgress(null), 3000)
+    const group = chosen ?? (await defaultGroup())
+    const { added, skipped } = await addFiles(group.id, files)
+    const missed = skipped.length
+      ? `, ${skipped.length} file${skipped.length === 1 ? '' : 's'} held no patches`
+      : ''
+    note(
+      added.length
+        ? `Filed ${added.length} ${added.length === 1 ? 'patch' : 'patches'} into ${group.name}${missed}`
+        : 'No patches found in file',
+    )
   }
 
   /**
@@ -234,6 +242,32 @@ function MainTab({ onExport }: { onExport: () => void }) {
 
       <section className="dialog-section">
         <h3>Library</h3>
+        <p className="dialog-blurb">
+          Patches you save or import are filed into a group in the library's <strong>User</strong>{' '}
+          tab, where they can be described and exported as a bundle. Groups are made there.
+          A dump read off the instrument goes to <strong>Programs</strong> instead, since every
+          program in it carries the slot it came from.
+        </p>
+
+        <label className="field">
+          <span>File into</span>
+          <select
+            value={chosen?.id ?? ''}
+            onChange={(e) => setGroupId(e.target.value)}
+            disabled={!groups.own.length}
+          >
+            {chosen ? (
+              groups.own.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))
+            ) : (
+              <option value="">My Patches — made on the first save</option>
+            )}
+          </select>
+        </label>
+
         <div className="dialog-actions">
           <button onClick={saveCurrent}>Save current</button>
           <button onClick={() => fileInput.current?.click()}>Import .syx</button>

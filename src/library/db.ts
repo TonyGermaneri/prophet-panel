@@ -15,6 +15,21 @@ import { type Patch, patchFromPayload } from '../domain/patch'
  */
 export type PatchSource = 'factory' | 'user' | 'device' | 'import' | 'shared'
 
+/**
+ * What a patch is beyond its bytes: who made it, when, and what it is for.
+ *
+ * None of this reaches the instrument — the 133-byte payload has no room for it — so it lives
+ * beside the patch here and travels with it in a bundle's manifest. Every field is optional
+ * because a patch pulled off the synth or read from a stranger's .syx file has none of them.
+ */
+export interface PatchMeta {
+  author?: string
+  description?: string
+  tags?: string[]
+  /** When the patch was written, as epoch ms. `updatedAt` tracks the row; this tracks the sound. */
+  createdAt?: number
+}
+
 export interface LibraryEntry {
   id: string
   name: string
@@ -26,6 +41,12 @@ export interface LibraryEntry {
   bank: string
   /** Which shared collection's tab this belongs to. Absent for the user's own patches. */
   collectionKey?: string
+  /**
+   * The user group this patch was filed into. Grouped patches are addressed by name rather than by
+   * slot, which is what lets the user tab hold arbitrary files instead of a 400-program grid.
+   */
+  groupId?: string
+  meta?: PatchMeta
   updatedAt: number
 }
 
@@ -72,6 +93,8 @@ export function entryFromPatch(
    * particular, where a duplicate run must overwrite rather than accumulate a second copy.
    */
   id: string = newId(),
+  /** Filing and authorship, for the patches that carry any. */
+  extra: Pick<LibraryEntry, 'groupId' | 'meta'> = {},
 ): LibraryEntry {
   return {
     id,
@@ -81,6 +104,7 @@ export function entryFromPatch(
     payload: patch.payload.slice(),
     source,
     bank,
+    ...extra,
     updatedAt: Date.now(),
   }
 }
@@ -108,6 +132,13 @@ export async function putEntries(entries: LibraryEntry[]): Promise<void> {
 
 export async function deleteEntry(id: string): Promise<void> {
   await (await db()).delete('patches', id)
+}
+
+export async function deleteEntries(ids: string[]): Promise<void> {
+  if (!ids.length) return
+  const database = await db()
+  const tx = database.transaction('patches', 'readwrite')
+  await Promise.all([...ids.map((id) => tx.store.delete(id)), tx.done])
 }
 
 export async function deleteBySource(source: PatchSource): Promise<void> {
