@@ -941,6 +941,11 @@ button.entry {
   cursor: not-allowed;
 }
 
+/* The controller's own traffic, distinct from either direction of the synth conversation. */
+.monitor-list tr.ctrl .dir {
+  color: #7f9fc4;
+}
+
 /* ---- Tabs ---- */
 
 .dialog-tabs,

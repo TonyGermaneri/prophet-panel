@@ -57,6 +57,19 @@ describe('forwarding controller messages to the synth', () => {
     }
   })
 
+  it('refuses the messages that address a parameter by number', () => {
+    // A controller speaking NRPN numbers its own parameters; relaying those lands its knob on
+    // whichever Prophet parameter happens to share the number.
+    for (const cc of [99, 98, 6, 38, 96, 97]) {
+      expect(forwardable(new Uint8Array([0xb0, cc, 40])), `CC ${cc}`).toBe(false)
+    }
+  })
+
+  it('still relays bank select, which asks for a patch rather than writing a parameter', () => {
+    expect(forwardable(new Uint8Array([0xb0, 32, 2]))).toBe(true)
+    expect(forwardable(new Uint8Array([0xc0, 7]))).toBe(true)
+  })
+
   it('rewrites the channel without touching the data bytes', () => {
     const remapped = remapChannel(new Uint8Array([0x92, 60, 100]), 5)
     expect([...remapped]).toEqual([0x95, 60, 100])

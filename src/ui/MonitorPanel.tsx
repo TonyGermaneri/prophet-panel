@@ -1,8 +1,15 @@
 import { useSyncExternalStore } from 'react'
 
 import { connection, sync } from '../midi'
-import { monitor } from '../midi/monitor'
+import { type Direction, monitor } from '../midi/monitor'
 import { useMidiStatus } from './useMidi'
+
+const DIRECTION_GLYPH: Record<Direction, string> = { in: '←', out: '→', ctrl: '⇢' }
+const DIRECTION_TITLE: Record<Direction, string> = {
+  in: 'From the synth',
+  out: 'To the synth',
+  ctrl: 'From the input device',
+}
 
 export function MonitorPanel({ onClose }: { onClose: () => void }) {
   const entries = useSyncExternalStore(
@@ -59,7 +66,9 @@ export function MonitorPanel({ onClose }: { onClose: () => void }) {
           <tbody>
             {entries.map((e) => (
               <tr key={e.id} className={e.direction}>
-                <td className="dir">{e.direction === 'in' ? '←' : '→'}</td>
+                <td className="dir" title={DIRECTION_TITLE[e.direction]}>
+                {DIRECTION_GLYPH[e.direction]}
+              </td>
                 <td className="kind">{e.kind}</td>
                 <td className="summary">{e.summary}</td>
                 <td className="bytes">{e.bytes}</td>

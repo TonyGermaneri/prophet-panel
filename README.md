@@ -50,7 +50,10 @@ the dev server works without TLS.
   **MIDI Bind**, click a knob or switch to select it, then move a control on your controller to
   bind the two. Bindings take precedence over pass-through: a bound message drives its panel
   control instead of reaching the synth twice. Bindings are listed on the right, can be removed
-  individually or cleared, and persist.
+  individually or cleared, and persist. Control changes, notes, pitch bend, aftertouch and **NRPN**
+  can all be bound, so a synth used as a controller — a Peak, anything that addresses its controls
+  by parameter number — is bindable too. An NRPN value is taken at face value rather than scaled
+  from 0-127, so a four-state button selects state four here.
 - **Your own patches** — the **User** tab files patches into groups you name, rather than into the
   instrument's 400 slots. Everything you save or import lands there. Save the panel's current sound
   into a group or drop in any `.syx` files, give each patch an author, a description and tags, and

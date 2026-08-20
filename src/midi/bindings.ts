@@ -15,6 +15,7 @@ import { CC } from './nrpn'
 
 export type BindingSource =
   | { kind: 'cc'; channel: number; number: number }
+  | { kind: 'nrpn'; channel: number; number: number }
   | { kind: 'note'; channel: number; number: number }
   | { kind: 'pitchbend'; channel: number }
   | { kind: 'aftertouch'; channel: number }
@@ -35,10 +36,12 @@ export interface Binding {
 const KEY = 'prophet-panel:bindings'
 
 /**
- * Control changes that carry NRPN traffic rather than a physical control. Binding one of these
- * would capture a fragment of a parameter message instead of the knob that sent it.
+ * Control changes that carry NRPN traffic rather than a physical control. None of these is bindable
+ * on its own — a single one is a fragment of a parameter message, not the knob that sent it. They
+ * are assembled into an `nrpn` source instead, which is what makes a controller that speaks NRPN
+ * (a Peak, a Hydrasynth, most modern synths acting as controllers) bindable at all.
  */
-const NRPN_CCS = new Set<number>([
+export const NRPN_CCS = new Set<number>([
   CC.NrpnParamMsb,
   CC.NrpnParamLsb,
   CC.DataEntryMsb,
@@ -61,6 +64,8 @@ export function describeSource(source: BindingSource): string {
     case 'cc':
       // Named as well as numbered: a bare number identifies nothing on a row of identical knobs.
       return `${describeCc(source.number)} · ${ch}`
+    case 'nrpn':
+      return `NRPN ${source.number} · ${ch}`
     case 'note':
       return `Note ${source.number} · ${ch}`
     case 'pitchbend':
@@ -70,12 +75,73 @@ export function describeSource(source: BindingSource): string {
   }
 }
 
+/**
+ * Assembles the four-message NRPN sequence a controller sends into one bindable source.
+ *
+ * Kept per port and stateful because that is what NRPN is: the parameter number is selected by one
+ * pair of messages and the value arrives in another, and a device may select once and then send
+ * values alone. Two senders have to be tolerated. Some send only the value's high byte — a Peak's
+ * multi-state buttons do, with the state in it — and some put the whole value in the low byte with
+ * a zero high byte, which is what this app's own encoder does. Emitting on either byte covers both,
+ * at the cost of a coarse value landing first when a device sends the pair.
+ */
+export class NrpnSourceAssembler {
+  private msb = 0
+  private lsb = 0
+  private value = 0
+  private selected = false
+
+  /** The completed source and value, or null while the sequence is still arriving. */
+  feed(data: Uint8Array): { source: BindingSource; value: number } | null {
+    if ((data[0] & 0xf0) !== 0xb0) return null
+    const channel = data[0] & 0x0f
+    const [, controller, value] = data
+
+    switch (controller) {
+      case CC.NrpnParamMsb:
+        this.msb = value
+        this.selected = true
+        return null
+      case CC.NrpnParamLsb:
+        this.lsb = value
+        this.selected = true
+        return null
+      case CC.DataEntryMsb:
+        if (!this.selected) return null
+        this.value = value
+        return this.emit(channel, value)
+      case CC.DataEntryLsb: {
+        if (!this.selected) return null
+        // A high byte of zero means the sender is using the low byte as the whole value.
+        const combined = this.value === 0 ? value : (this.value << 7) | value
+        return this.emit(channel, combined)
+      }
+      case CC.DataIncrement:
+      case CC.DataDecrement:
+        if (!this.selected) return null
+        this.value = Math.max(0, this.value + (controller === CC.DataIncrement ? 1 : -1))
+        return this.emit(channel, this.value)
+      case CC.RpnParamLsb:
+      case CC.RpnParamMsb:
+        if (value === 0x7f) this.selected = false
+        return null
+      default:
+        return null
+    }
+  }
+
+  private emit(channel: number, value: number): { source: BindingSource; value: number } {
+    return { source: { kind: 'nrpn', channel, number: (this.msb << 7) | this.lsb }, value }
+  }
+}
+
 /** Read a bindable source out of a raw message, or null if this message is not bindable. */
 export function parseSource(data: Uint8Array): { source: BindingSource; value: number } | null {
   const status = data[0] & 0xf0
   const channel = data[0] & 0x0f
   switch (status) {
     case 0xb0:
+      // NRPN needs the sequence, not one message; the store assembles those separately.
       if (NRPN_CCS.has(data[1])) return null
       return { source: { kind: 'cc', channel, number: data[1] }, value: data[2] }
     case 0x90:
@@ -91,9 +157,18 @@ export function parseSource(data: Uint8Array): { source: BindingSource; value: n
   }
 }
 
-/** Map a 0-127 controller value onto a control's own range. */
-export function mapValue(controlId: string, value: number): number {
+/**
+ * Map an incoming value onto a control's own range.
+ *
+ * A control change is 0-127 by definition, so it scales. An NRPN is not: it carries another
+ * instrument's parameter at that instrument's own range, and a four-state button sends 0-3. Scaling
+ * those against 0-127 would put every state of that button in the bottom three percent of the
+ * target — off, for anything with two states. So an NRPN value is taken at face value and clamped,
+ * which makes state N on the sending device select state N here.
+ */
+export function mapValue(controlId: string, value: number, kind: BindingSource['kind'] = 'cc'): number {
   const { min, max } = controlRange(controlId)
+  if (kind === 'nrpn') return Math.max(min, Math.min(max, min + value))
   // A two-state control should snap rather than creep through the midpoint.
   if (max - min === 1) return value >= 64 ? max : min
   return Math.round(min + (value / 127) * (max - min))
@@ -120,6 +195,8 @@ export class BindingStore {
   private index = new Map<string, Binding[]>()
   private listeners = new Set<() => void>()
   private version = 0
+  /** One NRPN assembler per port: two controllers must not interleave into each other's state. */
+  private assemblers = new Map<string, NrpnSourceAssembler>()
 
   constructor() {
     this.reindex()
@@ -150,7 +227,7 @@ export class BindingStore {
    * movement binds it; otherwise any matching bindings apply.
    */
   handle(portId: string, portName: string, data: Uint8Array): BindingResult {
-    const parsed = parseSource(data)
+    const parsed = this.read(portId, data)
     if (!parsed) return 'ignored'
 
     if (this.active && this.selected) {
@@ -163,6 +240,22 @@ export class BindingStore {
     return matches.length ? 'applied' : 'ignored'
   }
 
+  /**
+   * A message as a bindable source. NRPN needs the port's running sequence state, so it cannot be
+   * read by a pure function the way a control change can.
+   */
+  private read(portId: string, data: Uint8Array): { source: BindingSource; value: number } | null {
+    if ((data[0] & 0xf0) === 0xb0 && NRPN_CCS.has(data[1])) {
+      let assembler = this.assemblers.get(portId)
+      if (!assembler) {
+        assembler = new NrpnSourceAssembler()
+        this.assemblers.set(portId, assembler)
+      }
+      return assembler.feed(data)
+    }
+    return parseSource(data)
+  }
+
   private apply(binding: Binding, value: number): void {
     const { min, max } = controlRange(binding.controlId)
     if (binding.source.kind === 'note') {
@@ -171,7 +264,7 @@ export class BindingStore {
       store.set(binding.controlId, current >= max ? min : current + 1, 'ui')
       return
     }
-    store.set(binding.controlId, mapValue(binding.controlId, value), 'ui')
+    store.set(binding.controlId, mapValue(binding.controlId, value, binding.source.kind), 'ui')
   }
 
   bind(controlId: string, portId: string, portName: string, source: BindingSource): void {

@@ -11,7 +11,8 @@ import { decodeMessage, SEQUENTIAL_ID, SYSEX_START } from '../domain/sysex'
 import { CC } from './nrpn'
 import type { MidiConnection } from './connection'
 
-export type Direction = 'in' | 'out'
+/** `ctrl` is the performance controller's own port, which is neither to nor from the synth. */
+export type Direction = 'in' | 'out' | 'ctrl'
 
 export interface MonitorEntry {
   id: number
@@ -101,6 +102,14 @@ export class MidiMonitor {
   attach(connection: MidiConnection): void {
     this.teardown.push(connection.onMessage((data) => this.add('in', data)))
     this.teardown.push(connection.onSent((data) => this.add('out', data)))
+    // The controller's own traffic, which reaches the synth only where a binding or pass-through
+    // lets it. Without this row the only visible trace of a controller was the copy pass-through
+    // happened to relay — so anything correctly withheld became invisible.
+    this.teardown.push(
+      connection.onPortMessage((portId, _name, data) => {
+        if (portId === connection.controllerInput?.id) this.add('ctrl', data)
+      }),
+    )
   }
 
   detach(): void {

@@ -12,9 +12,30 @@
  * nothing at all, so a CC the parameter table claims is dropped rather than passed on. Everything a
  * player actually reaches for — the wheels, expression, the pedals, volume — is left alone, since
  * the instrument claims none of those numbers.
+ *
+ * The messages that carry NRPN go the same way, and for the same reason spelled differently: a
+ * controller that speaks NRPN addresses parameters by number, and its numbering is its own. Passing
+ * those on lets another synth's knob land on whichever Prophet parameter happens to share a number.
+ * Bank select is not among them — it addresses a patch rather than a parameter, and a controller
+ * sending it alongside a program change is asking for a sound, which is a reasonable thing to relay.
  */
 
 import { BY_CC } from '../domain/parameters'
+import { CC } from './nrpn'
+
+/**
+ * Selecting a parameter by number and writing to it. Blocked in both of its forms, since the
+ * numbering belongs to whichever device is sending. Data entry is what writes, so blocking it
+ * leaves RPN inert too — no loss, as nothing here needs a controller to set a bend range.
+ */
+const PARAMETER_WRITE_CCS = new Set<number>([
+  CC.NrpnParamMsb,
+  CC.NrpnParamLsb,
+  CC.DataEntryMsb,
+  CC.DataEntryLsb,
+  CC.DataIncrement,
+  CC.DataDecrement,
+])
 
 /** Status nibbles worth relaying, and how many bytes each message carries. */
 const CHANNEL_VOICE: Record<number, number> = {
@@ -74,8 +95,9 @@ export function forwardable(data: Uint8Array): boolean {
   const status = data[0] & 0xf0
   const length = CHANNEL_VOICE[status]
   if (length === undefined || data.length < length) return false
-  // A control change the parameter table claims is a patch edit, not something to play with.
-  if (status === 0xb0 && BY_CC.has(data[1])) return false
+  // A control change the parameter table claims is a patch edit, not something to play with, and
+  // an NRPN fragment is a parameter write addressed by number.
+  if (status === 0xb0 && (BY_CC.has(data[1]) || PARAMETER_WRITE_CCS.has(data[1]))) return false
   return true
 }
 

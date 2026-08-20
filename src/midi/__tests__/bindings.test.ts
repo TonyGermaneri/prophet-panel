@@ -231,3 +231,101 @@ describe('what reaches the synth from the controller', () => {
     ])
   })
 })
+
+/**
+ * Binding a controller that speaks NRPN.
+ *
+ * A Peak addresses its controls by parameter number rather than by control change, and sends the
+ * state of a multi-state button in the value's high byte with no low byte at all. Both halves of
+ * that have to work: assembling the sequence into one bindable thing, and taking its value at face
+ * value, since a four-state button counts 0-3 and scaling that against 0-127 would leave every
+ * state of it in the bottom three percent of whatever it drives.
+ */
+describe('binding an NRPN controller', () => {
+  const PORT = 'peak'
+  /** As logged from a Peak: parameter 78, four states, value in the high byte only. */
+  const paramMsb = (v: number) => new Uint8Array([0xb0, 99, v])
+  const paramLsb = (v: number) => new Uint8Array([0xb0, 98, v])
+  const valueMsb = (v: number) => new Uint8Array([0xb0, 6, v])
+  const valueLsb = (v: number) => new Uint8Array([0xb0, 38, v])
+
+  const send = (bind: BindingStore, ...messages: Uint8Array[]) =>
+    messages.map((m) => bind.handle(PORT, 'Peak', m))
+
+  it('learns one binding from the whole sequence, not from a fragment of it', () => {
+    const bind = new BindingStore()
+    bind.clear()
+    bind.setActive(true)
+    bind.select('filterKeyboardTrack')
+
+    const results = send(bind, paramMsb(0), paramLsb(78), valueMsb(2))
+
+    // The parameter-select messages are not controls; only the value completes the sequence.
+    expect(results).toEqual(['ignored', 'ignored', 'learned'])
+    expect(bind.bindings).toHaveLength(1)
+    expect(bind.bindings[0].source).toEqual({ kind: 'nrpn', channel: 0, number: 78 })
+  })
+
+  it('carries a multi-state button through state for state', () => {
+    const bind = new BindingStore()
+    bind.clear()
+    // Keyboard tracking has three states, against the button's four.
+    bind.bind('filterKeyboardTrack', PORT, 'Peak', { kind: 'nrpn', channel: 0, number: 78 })
+
+    const seen: number[] = []
+    for (const state of [0, 1, 2, 3, 0]) {
+      send(bind, paramMsb(0), paramLsb(78), valueMsb(state))
+      seen.push(store.get('filterKeyboardTrack'))
+    }
+    // 3 has nowhere to go on a three-state control, so it holds at the top rather than wrapping.
+    expect(seen).toEqual([0, 1, 2, 2, 0])
+  })
+
+  it('honours a selection made once and then sent values alone', () => {
+    const bind = new BindingStore()
+    bind.clear()
+    bind.bind('filterKeyboardTrack', PORT, 'Peak', { kind: 'nrpn', channel: 0, number: 78 })
+
+    send(bind, paramMsb(0), paramLsb(78), valueMsb(1))
+    expect(store.get('filterKeyboardTrack')).toBe(1)
+    // No reselection: NRPN state persists until something changes it.
+    expect(send(bind, valueMsb(2))).toEqual(['applied'])
+    expect(store.get('filterKeyboardTrack')).toBe(2)
+  })
+
+  it('reads a sender that puts the whole value in the low byte', () => {
+    // Which is what this app's own encoder does: a zero high byte and the value beneath it.
+    const bind = new BindingStore()
+    bind.clear()
+    bind.bind('filterCutoff', PORT, 'Peak', { kind: 'nrpn', channel: 0, number: 17 })
+
+    send(bind, paramMsb(0), paramLsb(17), valueMsb(0), valueLsb(100))
+    expect(store.get('filterCutoff')).toBe(100)
+  })
+
+  it('keeps one controller sequence out of another', () => {
+    const bind = new BindingStore()
+    bind.clear()
+    bind.bind('filterKeyboardTrack', PORT, 'Peak', { kind: 'nrpn', channel: 0, number: 78 })
+
+    // A second port selecting a different parameter in between must not redirect the first.
+    bind.handle(PORT, 'Peak', paramMsb(0))
+    bind.handle('other', 'Other', paramMsb(0))
+    bind.handle('other', 'Other', paramLsb(9))
+    bind.handle(PORT, 'Peak', paramLsb(78))
+    expect(bind.handle(PORT, 'Peak', valueMsb(1))).toBe('applied')
+    expect(store.get('filterKeyboardTrack')).toBe(1)
+  })
+
+  it('names an NRPN source by its number', () => {
+    expect(describeSource({ kind: 'nrpn', channel: 0, number: 78 })).toBe('NRPN 78 · ch 1')
+  })
+
+  it('scales a control change but not an NRPN', () => {
+    // 3 of 127 is nothing; 3 as a state is a state.
+    expect(mapValue('filterKeyboardTrack', 3, 'cc')).toBe(0)
+    expect(mapValue('filterKeyboardTrack', 3, 'nrpn')).toBe(2)
+    expect(mapValue('filterCutoff', 127, 'cc')).toBe(120)
+    expect(mapValue('filterCutoff', 100, 'nrpn')).toBe(100)
+  })
+})
