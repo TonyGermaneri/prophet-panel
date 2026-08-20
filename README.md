@@ -39,10 +39,13 @@ the dev server works without TLS.
   shift octave and `C`/`V` velocity. The keyboard toggle switches between the keyboard instrument
   and the **desktop module** — the same synth in different furniture, with its own arrangement,
   illuminated caps and printed logo, drawn from its own reference photo.
-- **Input device** — pick a controller under the gear icon. Its notes, control changes, pitch bend
-  and aftertouch are passed through to the Prophet on the synth's own channel, so you can play and
-  automate the instrument through the app. The synth's own port is excluded from the list, since
-  routing its keyboard back to it would loop.
+- **Input device** — pick a controller under the gear icon. Its notes, pitch bend, aftertouch and
+  performance controllers — the wheels, expression, the pedals, volume — are passed through to the
+  Prophet on the synth's own channel, so you can play the instrument through the app. The synth's
+  own port is excluded from the list, since routing its keyboard back to it would loop.
+  A control change the Prophet reads as a *parameter* is not passed through: fifty-seven CC numbers
+  are wired to parameters on this synth, so relaying an unbound knob would silently rewrite the
+  patch. Bind a knob to drive a parameter.
 - **MIDI Bind** — drive the panel (and therefore the synth) from that controller. Click
   **MIDI Bind**, click a knob or switch to select it, then move a control on your controller to
   bind the two. Bindings take precedence over pass-through: a bound message drives its panel

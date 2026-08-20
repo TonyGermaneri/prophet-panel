@@ -12,6 +12,7 @@ import { library } from './library/libraryStore'
 import { sharedLibraries } from './library/shared'
 import { connection, sync } from './midi'
 import { bindings } from './midi/bindings'
+import { splitMessages } from './midi/forward'
 import { monitor } from './midi/monitor'
 import { Panel } from './panel/Panel'
 import { registerActions } from './state/actions'
@@ -72,8 +73,12 @@ export function App() {
     // whatever no binding claims is passed through as performance data.
     const unbindPorts = connection.onPortMessage((portId, portName, data) => {
       if (portId !== connection.controllerInput?.id) return
-      if (bindings.handle(portId, portName, data) === 'ignored') {
-        connection.forwardToSynth(data)
+      // Per message, not per buffer: one event can carry several, and judging them all by the
+      // first would forward a bound knob's traffic to the synth because something else led.
+      for (const message of splitMessages(data)) {
+        if (bindings.handle(portId, portName, message) === 'ignored') {
+          connection.forwardToSynth(message)
+        }
       }
     })
 

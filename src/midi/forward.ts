@@ -4,7 +4,17 @@
  * Only channel-voice messages are forwarded. System messages are not: clock and active sensing
  * would flood the port, and a sysex message from a controller is not ours to relay — it could
  * address the synth's globals or its program memory.
+ *
+ * The same reasoning rules out most control changes, which is less obvious. On this instrument a
+ * CC is not a performance gesture but a program edit: fifty-seven numbers are wired to parameters,
+ * so relaying an unbound knob's CC silently rewrites the patch — and the panel then follows the
+ * synth's report of a change nobody asked for. A controller knob that has not been bound should do
+ * nothing at all, so a CC the parameter table claims is dropped rather than passed on. Everything a
+ * player actually reaches for — the wheels, expression, the pedals, volume — is left alone, since
+ * the instrument claims none of those numbers.
  */
+
+import { BY_CC } from '../domain/parameters'
 
 /** Status nibbles worth relaying, and how many bytes each message carries. */
 const CHANNEL_VOICE: Record<number, number> = {
@@ -17,9 +27,56 @@ const CHANNEL_VOICE: Record<number, number> = {
   0xe0: 3, // pitch bend
 }
 
+/**
+ * Split a buffer into the individual messages it holds.
+ *
+ * One event is not one message. A driver may coalesce a burst into a single buffer, a controller
+ * may use running status and send the status byte once for a whole run, and a real-time byte is
+ * allowed to land between any two bytes of anything — including partway through a message. Reading
+ * only the first three bytes therefore drops traffic, and worse, decides the fate of a whole buffer
+ * from whatever happened to arrive at the front of it.
+ */
+export function splitMessages(data: Uint8Array): Uint8Array[] {
+  const out: Uint8Array[] = []
+  let status = 0
+  let want = 0
+  let pending: number[] = []
+
+  for (const byte of data) {
+    // Real-time is interleavable anywhere and never interrupts what is being assembled.
+    if (byte >= 0xf8) continue
+    if (byte >= 0xf0) {
+      // System common is not ours to relay, and it cancels running status.
+      status = 0
+      want = 0
+      pending = []
+      continue
+    }
+    if (byte >= 0x80) {
+      status = byte
+      want = CHANNEL_VOICE[byte & 0xf0] ?? 0
+      pending = []
+      continue
+    }
+    if (!want) continue
+    pending.push(byte)
+    if (pending.length === want - 1) {
+      out.push(new Uint8Array([status, ...pending]))
+      // Running status: the next data byte begins another message on the same status.
+      pending = []
+    }
+  }
+
+  return out
+}
+
 export function forwardable(data: Uint8Array): boolean {
-  const length = CHANNEL_VOICE[data[0] & 0xf0]
-  return length !== undefined && data.length >= length
+  const status = data[0] & 0xf0
+  const length = CHANNEL_VOICE[status]
+  if (length === undefined || data.length < length) return false
+  // A control change the parameter table claims is a patch edit, not something to play with.
+  if (status === 0xb0 && BY_CC.has(data[1])) return false
+  return true
 }
 
 /**
