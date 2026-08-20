@@ -160,7 +160,12 @@ describe('learning and applying', () => {
   })
 
   it('describes a source the way the panel lists it', () => {
-    expect(describeSource({ kind: 'cc', channel: 0, number: 74 })).toBe('CC 74 · ch 1')
+    // Named as well as numbered, since a bare number identifies nothing on a row of like knobs.
+    expect(describeSource({ kind: 'cc', channel: 0, number: 74 })).toBe('Brightness · CC 74 · ch 1')
     expect(describeSource({ kind: 'pitchbend', channel: 3 })).toBe('Pitch bend · ch 4')
+  })
+
+  it('leaves a control change the spec does not define as a bare number', () => {
+    expect(describeSource({ kind: 'cc', channel: 0, number: 20 })).toBe('CC 20 · ch 1')
   })
 })

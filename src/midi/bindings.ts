@@ -10,6 +10,7 @@
  */
 
 import { controlRange, store } from '../state/store'
+import { describeCc } from './ccNames'
 import { CC } from './nrpn'
 
 export type BindingSource =
@@ -58,7 +59,8 @@ export function describeSource(source: BindingSource): string {
   const ch = `ch ${source.channel + 1}`
   switch (source.kind) {
     case 'cc':
-      return `CC ${source.number} · ${ch}`
+      // Named as well as numbered: a bare number identifies nothing on a row of identical knobs.
+      return `${describeCc(source.number)} · ${ch}`
     case 'note':
       return `Note ${source.number} · ${ch}`
     case 'pitchbend':

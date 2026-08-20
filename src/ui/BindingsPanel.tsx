@@ -63,11 +63,18 @@ export function BindingsPanel({ onClose }: { onClose: () => void }) {
         <ul className="binding-list">
           {bind.bindings.map((b) => (
             <li key={b.controlId}>
-              <span className="binding-control">{controlDisplayName(b.controlId)}</span>
-              <span className="binding-source">
-                {describeSource(b.source)}
-                <em>{b.portName}</em>
-              </span>
+              {/*
+                The control and its source stack rather than sharing a line. Side by side they
+                competed for the same width, and a long name on either one pushed the other under
+                the button; stacked, each ellipsizes inside a column that nothing else is using.
+              */}
+              <div className="binding-text">
+                <span className="binding-control">{controlDisplayName(b.controlId)}</span>
+                <span className="binding-source" title={b.portName}>
+                  {describeSource(b.source)}
+                  <em> · {b.portName}</em>
+                </span>
+              </div>
               <button className="link danger" onClick={() => bind.remove(b.controlId)}>
                 Remove
               </button>
