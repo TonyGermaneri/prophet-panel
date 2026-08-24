@@ -1,9 +1,15 @@
 /**
- * Web MIDI transport.
+ * The instrument connection.
  *
- * Sysex access needs `{ sysex: true }` and a secure context; the Vite dev server on localhost
- * qualifies, so no TLS is needed in development. Chrome and Edge implement this; Safari does not.
+ * Everything here is about *this synthesizer* rather than about any one host: which ports were
+ * chosen, which sysex device ID the instrument actually answers on, and how a controller's
+ * performance messages are relayed onto the synth's channel. The transport underneath — Web MIDI
+ * in the browser, the host's MIDI stack in the plugin — is supplied as a `MidiBackend`, so none of
+ * this logic is written twice.
  */
+
+import { platform } from '@platform'
+import type { ConnectionState, MidiBackend, PortInfo, PortMessageHandler } from '@platform'
 
 import { settings } from '../state/settings'
 import { forwardable, remapChannel } from './forward'
@@ -17,10 +23,7 @@ import {
   SYSEX_START,
 } from '../domain/sysex'
 
-export interface PortInfo {
-  id: string
-  name: string
-}
+export type { ConnectionState, PortInfo, PortMessageHandler } from '@platform'
 
 export interface DeviceInfo {
   /** The sysex device ID the instrument actually answers with — never assumed. */
@@ -31,8 +34,6 @@ export interface DeviceInfo {
   model: string
 }
 
-export type ConnectionState = 'idle' | 'unsupported' | 'denied' | 'ready'
-
 /** Family IDs seen for this generation. The doc contradicts itself, so all three are accepted. */
 const MODEL_NAMES: Record<number, string> = {
   0x31: 'Prophet-5/10 Rev4',
@@ -42,21 +43,12 @@ const MODEL_NAMES: Record<number, string> = {
 
 export type MessageHandler = (data: Uint8Array) => void
 
-/** Receives traffic from every connected input, tagged with its port, for MIDI learn. */
-export type PortMessageHandler = (portId: string, portName: string, data: Uint8Array) => void
-
 export class MidiConnection {
   state: ConnectionState = 'idle'
-  access: MIDIAccess | null = null
-  input: MIDIInput | null = null
-  output: MIDIOutput | null = null
+  input: PortInfo | null = null
+  output: PortInfo | null = null
   /** The performance controller, distinct from the synth's own input. */
-  controllerInput: MIDIInput | null = null
-  /**
-   * Whether the granted access actually permits sysex. Access can be granted without it, in which
-   * case parameter control works and every patch transfer fails — worth stating plainly.
-   */
-  sysexEnabled = false
+  controllerInput: PortInfo | null = null
   device: DeviceInfo | null = null
   channel = 0
 
@@ -77,61 +69,53 @@ export class MidiConnection {
   private sentHandlers = new Set<MessageHandler>()
   private portHandlers = new Set<PortMessageHandler>()
   private stateHandlers = new Set<() => void>()
+  private detach: (() => void)[] = []
+
+  constructor(private backend: MidiBackend = platform.midi) {}
+
+  /**
+   * Whether the transport actually permits sysex. Access can be granted without it, in which case
+   * parameter control works and every patch transfer fails — worth stating plainly.
+   */
+  get sysexEnabled(): boolean {
+    return this.backend.sysexEnabled
+  }
 
   async connect(): Promise<ConnectionState> {
-    if (typeof navigator === 'undefined' || !navigator.requestMIDIAccess) {
-      this.state = 'unsupported'
+    // Connecting twice is normal — the app connects on mount and the settings dialog offers a
+    // retry — so previous subscriptions are dropped rather than stacked. Without this every
+    // reconnect would deliver each message one more time than the last.
+    for (const off of this.detach.splice(0)) off()
+
+    this.state = await this.backend.open()
+    if (this.state !== 'ready') {
       this.notify()
       return this.state
     }
-    try {
-      this.access = await navigator.requestMIDIAccess({ sysex: true })
-      this.state = 'ready'
-      this.sysexEnabled = this.access.sysexEnabled !== false
-      this.access.onstatechange = () => {
-        // Ports appearing or disappearing must be (re)attached, or a device plugged in later
-        // would never be heard by MIDI learn.
-        this.listenToAllInputs()
-        this.notify()
-      }
-      this.channel = settings.current.channel
-      this.listenToAllInputs()
-      this.restoreOrAutoSelect()
-      settings.update({ hasConnected: true })
-    } catch {
-      this.state = 'denied'
-    }
+
+    // Every input is listened to, not just the selected one, so MIDI learn can hear a controller
+    // that is not the synth. Only the selected port is routed into the sync/monitor path.
+    this.detach.push(
+      this.backend.onMessage((portId, portName, data) => {
+        for (const fn of this.portHandlers) fn(portId, portName, data)
+        if (portId === this.input?.id) this.receive(data)
+      }),
+      this.backend.onPortsChanged(() => this.notify()),
+    )
+
+    this.channel = settings.current.channel
+    this.restoreOrAutoSelect()
+    settings.update({ hasConnected: true })
     this.notify()
     return this.state
   }
 
-  /**
-   * Every input is listened to, not just the selected one, so MIDI learn can hear a controller
-   * that is not the synth. Only the selected port is routed into the sync/monitor path.
-   */
-  private listenToAllInputs(): void {
-    for (const port of this.access?.inputs.values() ?? []) {
-      port.onmidimessage = (e: MIDIMessageEvent) => {
-        if (!e.data) return
-        const data = new Uint8Array(e.data)
-        for (const fn of this.portHandlers) fn(port.id, port.name ?? port.id, data)
-        if (port.id === this.input?.id) this.receive(data)
-      }
-    }
-  }
-
   get inputs(): PortInfo[] {
-    return [...(this.access?.inputs.values() ?? [])].map((p) => ({
-      id: p.id,
-      name: p.name ?? p.id,
-    }))
+    return this.backend.inputs
   }
 
   get outputs(): PortInfo[] {
-    return [...(this.access?.outputs.values() ?? [])].map((p) => ({
-      id: p.id,
-      name: p.name ?? p.id,
-    }))
+    return this.backend.outputs
   }
 
   /**
@@ -140,14 +124,14 @@ export class MidiConnection {
    */
   private restoreOrAutoSelect(): void {
     const saved = settings.current
-    const inputs = [...(this.access?.inputs.values() ?? [])]
-    const outputs = [...(this.access?.outputs.values() ?? [])]
+    const inputs = this.backend.inputs
+    const outputs = this.backend.outputs
     const looksRight = (name: string) => /prophet/i.test(name)
 
-    const pick = <T extends MIDIPort>(ports: T[], id: string | null, name: string | null) =>
+    const pick = (ports: PortInfo[], id: string | null, name: string | null) =>
       ports.find((p) => p.id === id) ??
       ports.find((p) => name !== null && p.name === name) ??
-      ports.find((p) => looksRight(p.name ?? '')) ??
+      ports.find((p) => looksRight(p.name)) ??
       ports[0]
 
     this.setInput(pick(inputs, saved.inputId, saved.inputName)?.id ?? null)
@@ -158,7 +142,9 @@ export class MidiConnection {
     const others = inputs.filter((p) => p.id !== this.input?.id)
     this.setControllerInput(
       (others.find((p) => p.id === saved.controllerInputId) ??
-        others.find((p) => saved.controllerInputName !== null && p.name === saved.controllerInputName) ??
+        others.find(
+          (p) => saved.controllerInputName !== null && p.name === saved.controllerInputName,
+        ) ??
         others[0])?.id ?? null,
     )
   }
@@ -169,7 +155,7 @@ export class MidiConnection {
   }
 
   setInput(id: string | null): void {
-    this.input = id ? (this.access?.inputs.get(id) ?? null) : null
+    this.input = id ? (this.backend.inputs.find((p) => p.id === id) ?? null) : null
     settings.update({ inputId: this.input?.id ?? null, inputName: this.input?.name ?? null })
     // Selecting the synth on a port already used as the controller would loop it back on itself.
     if (this.controllerInput && this.controllerInput.id === this.input?.id) {
@@ -179,7 +165,7 @@ export class MidiConnection {
   }
 
   setControllerInput(id: string | null): void {
-    this.controllerInput = id ? (this.access?.inputs.get(id) ?? null) : null
+    this.controllerInput = id ? (this.backend.inputs.find((p) => p.id === id) ?? null) : null
     settings.update({
       controllerInputId: this.controllerInput?.id ?? null,
       controllerInputName: this.controllerInput?.name ?? null,
@@ -188,7 +174,7 @@ export class MidiConnection {
   }
 
   setOutput(id: string | null): void {
-    this.output = id ? (this.access?.outputs.get(id) ?? null) : null
+    this.output = id ? (this.backend.outputs.find((p) => p.id === id) ?? null) : null
     settings.update({ outputId: this.output?.id ?? null, outputName: this.output?.name ?? null })
     this.notify()
   }
@@ -217,11 +203,13 @@ export class MidiConnection {
 
   send(data: Uint8Array | number[]): void {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+    const target = this.output?.id
+    if (target === undefined) return
     try {
-      this.output?.send(Array.from(bytes))
+      this.backend.send(target, bytes)
     } catch (error) {
-      // Web MIDI throws InvalidAccessError for a sysex message when the access was granted
-      // without sysex permission. Letting that propagate would abort a whole parameter flush.
+      // A sysex message sent under a grant that excluded sysex throws. Letting that propagate
+      // would abort a whole parameter flush.
       const message = error instanceof Error ? error.message : String(error)
       if (this.sendError !== message) {
         this.sendError = message
@@ -302,7 +290,9 @@ export class MidiConnection {
           familyId: decoded.familyId,
           familyMember: decoded.familyMember,
           version: decoded.version,
-          model: MODEL_NAMES[decoded.familyId & 0x7f] ?? `Unknown (0x${decoded.familyId.toString(16)})`,
+          model:
+            MODEL_NAMES[decoded.familyId & 0x7f] ??
+            `Unknown (0x${decoded.familyId.toString(16)})`,
         }
         this.device = info
         // The inquiry reply's family ID is a good guess at the sysex addressing ID but not proof:

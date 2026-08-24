@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { platform } from '@platform'
+
 import { documentTitle } from './domain/model'
 import {
   bankOf,
@@ -16,6 +18,7 @@ import { splitMessages } from './midi/forward'
 import { monitor } from './midi/monitor'
 import { Panel } from './panel/Panel'
 import { registerActions } from './state/actions'
+import { attachSession } from './state/session'
 import { notes } from './state/notes'
 import { settings } from './state/settings'
 import { store } from './state/store'
@@ -61,12 +64,18 @@ export function App() {
     // Reconnect without being asked. Chrome remembers the sysex grant per origin, so once access
     // has been given a reload can restore the connection silently; without the flag we would be
     // firing a permission prompt at someone who has never opted in.
-    if (settings.current.hasConnected) {
+    // The gate is about the browser's sysex permission prompt: firing one at someone who has never
+    // opted in would be a surprise. A plugin has no prompt to fire, so it simply connects.
+    if (platform.name === 'plugin' || settings.current.hasConnected) {
       void connection.connect().then((state) => {
         if (state === 'ready') void connection.identify()
       })
     }
     monitor.attach(connection)
+
+    // In a plugin the editor dies whenever the window is closed, so the panel's current sound is
+    // handed to the host with the rest of the session. A no-op in the browser.
+    const detachSession = attachSession()
 
     // Everything from the performance controller lands here. Bindings get first refusal, since an
     // automation message should drive its panel control rather than reaching the synth twice;
@@ -102,6 +111,7 @@ export function App() {
 
     return () => {
       unregister()
+      detachSession()
       unbindPorts()
       monitor.detach()
       notes.allOff()

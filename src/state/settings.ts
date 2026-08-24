@@ -1,10 +1,13 @@
 /**
  * Session settings that should survive a reload: which MIDI ports were chosen, the channel, and
- * panel preferences. Kept in localStorage rather than IndexedDB because they are tiny and needed
+ * panel preferences. Kept in the key/value store rather than the patch database because they are
+ * tiny and needed
  * synchronously during startup.
  */
 
 import { DEFAULT_MODEL, type SynthModel } from '../domain/model'
+import { platform } from '@platform'
+
 
 const KEY = 'prophet-panel:settings'
 
@@ -55,7 +58,7 @@ const DEFAULTS: Settings = {
 
 function read(): Settings {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = platform.kv.get(KEY)
     return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) } : { ...DEFAULTS }
   } catch {
     // A corrupt or unavailable store must not stop the app from starting.
@@ -75,11 +78,7 @@ class SettingsStore {
     const next = { ...this.value, ...patch }
     if ((Object.keys(patch) as (keyof Settings)[]).every((k) => this.value[k] === next[k])) return
     this.value = next
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next))
-    } catch {
-      // Private browsing and full quotas both throw; the setting still applies for this session.
-    }
+    platform.kv.set(KEY, JSON.stringify(next))
     for (const fn of this.listeners) fn()
   }
 

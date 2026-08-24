@@ -16,7 +16,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client", "vitest/globals", "node"]
+    "types": ["vite/client", "vitest/globals", "node"],
+    "baseUrl": ".",
+    // Typecheck and tests resolve the browser platform; the plugin build re-aliases this.
+    "paths": {
+      "@platform": ["src/platform/web/index.ts"],
+      "@library-backend": ["src/library/backend/web.ts"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }

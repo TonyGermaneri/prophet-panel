@@ -13,8 +13,9 @@ default.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm test         # codec round-trip over the factory corpus
+npm run dev          # http://localhost:5173
+npm test             # codec round-trip over the factory corpus
+npm run build:native # the AU / VST3 / standalone build — see In a DAW
 ```
 
 Web MIDI with sysex needs Chrome or Edge and a secure context. `localhost` counts as secure, so
@@ -219,6 +220,66 @@ and runs offline.
 The worker is only registered in production builds — in front of the dev server it would serve
 stale modules and fight hot reload.
 
+## In a DAW
+
+The panel also builds as an **AU**, a **VST3** and a standalone app, so it can sit in a session
+beside the tracks it is playing. It is not a port: it is the same React panel and the same
+sysex codec, running in a WebView, with the browser's MIDI, storage and file dialogs swapped for
+the host's.
+
+```bash
+npm run build:native
+```
+
+That builds the web bundle, fetches JUCE, and compiles. Artefacts land in
+`native/build/ProphetPanel_artefacts/Release/`, and the AU and VST3 are copied into your user plug-in
+folders on the way. Run the standalone first — it is the quickest way to see the panel working
+without a DAW in the way, and it is the only way to get the panel on a Mac at all outside Chrome,
+since Safari has no Web MIDI.
+
+Or take a build from [Releases](https://github.com/TonyGermaneri/prophet-panel/releases) — every
+version tag builds and publishes the AU, the VST3 and the standalone app. They are unsigned, so the
+first launch needs `xattr -dr com.apple.quarantine` on the bundle, or a right-click → Open.
+
+It has no audio engine and never will, and it nonetheless declares itself an **instrument**. That
+is a lie, and it is the only thing that works: hosts deliver MIDI to instruments and not to effects.
+In Ableton Live a VST or AU *effect* on a track receives no MIDI at all, and a plugin that declares
+`IS_MIDI_EFFECT` makes Live refuse to load it outright. So it is an instrument that generates
+silence — macOS reports it as `aumu`. Put it on a MIDI track; the sound comes from the hardware.
+
+**It opens the Prophet's port itself**, exactly as the browser does, and this is not a preference
+either. Ableton Live never passes sysex to a plugin — [SysEx reaches Max for Live devices and
+nothing else](https://help.ableton.com/hc/en-us/articles/360003148640-SysEx-support) — so a patch
+dump routed through the host would simply never arrive, and the librarian would be decorative.
+Driving the instrument over its own port is also how the established editors for this hardware work.
+Choose the port under the gear icon, the same way you would in the browser.
+
+The host is not ignored: its MIDI stream appears as one more input port named **DAW / Host**, so a
+track can play the Prophet through the panel's existing controller pass-through. Pick it under the
+gear icon as the input device. Notes and controllers arrive that way; sysex does not, which is why
+patch transfer uses the direct port.
+
+### Setting it up in Ableton Live
+
+1. Make a **MIDI track** and drop **Prophet Panel** on it as an instrument. The track stays silent.
+2. Open the panel, and under the gear icon set **Synth in** and **Synth out** to the interface the
+   Prophet is on.
+3. To play it from the track, set **Input Device** to **DAW / Host**.
+4. For audio, bring the Prophet's outputs back on a separate audio track, or use Live's
+   **External Instrument** device.
+
+**Settings and patches are kept natively**, in `~/Library/Application Support/Prophet Panel/`,
+rather than in the WebView. A WebView served from a custom scheme has no origin the browser will
+reliably grant durable storage to, so a library left in IndexedDB would be one host cache clear
+away from empty. Keeping it on disk also means every DAW on the machine sees the same library.
+
+The panel's current sound is written into the host's session, so reopening a project brings the
+patch back with it.
+
+Not yet wired up, and browser-only for now: importing `.syx` and zip files, and subscribing to
+shared repositories. Note also that MIDI only flows while the panel is open — closing the window
+destroys the WebView, and the forwarding rules live inside it.
+
 ## Deploying
 
 Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`:
@@ -287,5 +348,16 @@ re-derived from it.
 ## Still to confirm on hardware
 
 - Whether NRPN 39 is aftertouch→amp (as the doc says) or aftertouch→LFO (as the panel is printed).
-- The device ID a Prophet-10 actually reports.
 - The meaning of program bytes 85–96, which would let the bi-timbral layer settings be stored.
+
+**Settled: the device ID.** A Prophet-10 Rev4 (firmware 2.1) answers a universal device inquiry
+with family ID **0x33**, and then accepts and answers Sequential sysex only on device ID **0x32** —
+the value the factory files carry, and the one `DEFAULT_DEVICE_ID` already used. The two fields
+genuinely disagree on real hardware, which is exactly why `sendAddressed` fans a device-addressed
+message out to every ID in the family until the instrument has answered on one. Locking onto the
+inquiry's family ID instead would leave every patch transfer silently ignored while NRPN kept
+working and hid the problem.
+
+Measured directly: `F0 7E 7F 06 01 F7` returns `F0 7E 7F 06 02 01 33 01 00 00 02 01 00 F7`, while
+of `F0 01 31 06 F7` / `F0 01 32 06 F7` / `F0 01 33 06 F7` only the **0x32** request produces an edit
+buffer dump.

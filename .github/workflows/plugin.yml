@@ -1,0 +1,107 @@
+name: Plugin
+
+# The web app publishes itself from deploy.yml. This builds the plugin target — AU, VST3 and the
+# standalone app — and, when a version tag is pushed, publishes them as a release.
+#
+# Windows is the next platform. It joins as a second build job beside `macos`; the release job
+# already gathers whatever the build jobs upload, so adding it needs no changes here.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A tag pushed straight after its commit would otherwise build main and the tag at once.
+concurrency:
+  group: plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The sysex codec is verified against the factory corpus, so a broken decode fails here
+      # rather than being wrapped up inside a plugin and shipped.
+      - name: Test
+        run: npm test
+
+      # The panel is built first: CMake refuses to configure without it, having nothing to embed.
+      - name: Build the web bundle
+        run: npm run build:plugin
+
+      # Only JUCE's checkout is cached, not the object tree. A stale build directory is a far
+      # nastier failure than a slow build, and the clone is the part worth saving.
+      - name: Cache JUCE
+        uses: actions/cache@v4
+        with:
+          path: .deps
+          key: juce-9.0.1-${{ runner.os }}
+
+      - name: Configure
+        run: >
+          cmake -B native/build -S native
+          -DCMAKE_BUILD_TYPE=Release
+          -DPROPHET_COPY_PLUGIN=OFF
+          -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.deps
+
+      - name: Build
+        run: cmake --build native/build --parallel
+
+      # auval is the gate for the Audio Unit: Logic will not load a component that fails it, so a
+      # component that fails it is not worth publishing.
+      - name: Validate the Audio Unit
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R "native/build/ProphetPanel_artefacts/Release/AU/Prophet Panel.component" \
+                ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -v aumu PrPl WvCt
+
+      - name: Package
+        working-directory: native/build/ProphetPanel_artefacts/Release
+        run: zip -qry ProphetPanel-macOS.zip AU VST3 Standalone
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ProphetPanel-macOS
+          path: native/build/ProphetPanel_artefacts/Release/ProphetPanel-macOS.zip
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: [macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            artifacts/*/*.zip

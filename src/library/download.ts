@@ -1,9 +1,12 @@
-/** Hand bytes to the browser as a file. Shared by the .syx and .zip exports. */
+/**
+ * Hand bytes to the user as a file. Shared by the .syx and .zip exports.
+ *
+ * How that happens is the platform's business: a download link in the browser, a save panel in the
+ * plugin. Callers only ever want the bytes to end up somewhere the user chose.
+ */
+
+import { platform } from '@platform'
+
 export function download(name: string, bytes: Uint8Array, type = 'application/octet-stream'): void {
-  const url = URL.createObjectURL(new Blob([bytes.slice().buffer as BlobPart], { type }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
+  platform.saveFile(name, bytes, type)
 }

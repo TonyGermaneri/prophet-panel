@@ -5,3 +5,11 @@ dist
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# The plugin build: the embedded web bundle and the CMake tree, both generated.
+native/webui
+native/build
+
+# Symlink into native/build, and the index clangd builds from it.
+compile_commands.json
+.cache/

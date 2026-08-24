@@ -10,6 +10,8 @@
  */
 
 import { controlRange, store } from '../state/store'
+import { platform } from '@platform'
+
 import { describeCc } from './ccNames'
 import { CC } from './nrpn'
 
@@ -176,7 +178,7 @@ export function mapValue(controlId: string, value: number, kind: BindingSource['
 
 function load(): Binding[] {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = platform.kv.get(KEY)
     return raw ? (JSON.parse(raw) as Binding[]) : []
   } catch {
     return []
@@ -308,11 +310,7 @@ export class BindingStore {
   private changed(persist: boolean): void {
     if (persist) {
       this.reindex()
-      try {
-        localStorage.setItem(KEY, JSON.stringify(this.list))
-      } catch {
-        // Persistence is best-effort; the bindings still work for this session.
-      }
+      platform.kv.set(KEY, JSON.stringify(this.list))
     }
     this.version++
     for (const fn of this.listeners) fn()

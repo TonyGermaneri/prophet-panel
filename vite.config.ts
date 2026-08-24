@@ -85,22 +85,68 @@ function pwa(): Plugin {
   }
 }
 
-export default defineConfig(({ command, isPreview }) => ({
+/**
+ * Drops the `crossorigin` attribute Vite puts on the module script and stylesheet.
+ *
+ * The plugin's WebView serves the app from a custom scheme through a resource provider, which
+ * answers with bytes and a MIME type and no CORS headers at all. Same-origin requests should not
+ * care, but a custom scheme's origin is not treated like an ordinary one, and the attribute is
+ * enough to turn a working panel into a blank window on some WebView versions. Nothing here needs
+ * CORS, so the safest thing is not to ask for it.
+ */
+function noCrossOrigin(): Plugin {
+  return {
+    name: 'no-crossorigin',
+    apply: 'build',
+    transformIndexHtml(html: string) {
+      return html.replace(/\s+crossorigin(=("|')anonymous\2)?/g, '')
+    },
+  }
+}
+
+export default defineConfig(({ command, isPreview, mode }) => {
+  /**
+   * The plugin target is the same app in different furniture. It differs in four ways, all of
+   * them here rather than in the app: no service worker (a cache in front of a WebView that is
+   * already reading from a binary is pure liability), no Pages base, relative asset URLs so they
+   * resolve under the WebView's `juce://juce.backend/` origin, and the native platform behind
+   * `@platform`.
+   */
+  const isPlugin = mode === 'plugin'
+
   // The dev server keeps the root so http://localhost:5173 works as before; builds — including
   // the ones `vite preview` serves — carry the Pages prefix.
-  base: command === 'build' || isPreview ? PAGES_BASE : '/',
-  plugins: [react(), spaFallback(), pwa()],
-  server: {
-    port: 5173,
-    // localhost is a secure context, so Web MIDI (including sysex) works without TLS.
-    host: 'localhost',
-  },
-  // The factory .syx files live outside src/ and are pulled in as raw bytes by the
-  // library seeder via import.meta.glob.
-  assetsInclude: ['**/*.syx'],
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    setupFiles: ['src/test/setup.ts'],
-  },
-}))
+  const webBase = command === 'build' || isPreview ? PAGES_BASE : '/'
+
+  return {
+    base: isPlugin ? './' : webBase,
+    plugins: isPlugin ? [react(), noCrossOrigin()] : [react(), spaFallback(), pwa()],
+    resolve: {
+      alias: {
+        '@platform': resolve(
+          import.meta.dirname,
+          isPlugin ? 'src/platform/plugin' : 'src/platform/web',
+        ),
+        '@library-backend': resolve(
+          import.meta.dirname,
+          isPlugin ? 'src/library/backend/plugin.ts' : 'src/library/backend/web.ts',
+        ),
+      },
+    },
+    // The plugin bundle is built into the native tree, where CMake embeds it as binary data.
+    ...(isPlugin ? { build: { outDir: 'native/webui', emptyOutDir: true } } : {}),
+    server: {
+      port: 5173,
+      // localhost is a secure context, so Web MIDI (including sysex) works without TLS.
+      host: 'localhost',
+    },
+    // The factory .syx files live outside src/ and are pulled in as raw bytes by the
+    // library seeder via import.meta.glob.
+    assetsInclude: ['**/*.syx'],
+    test: {
+      environment: 'node',
+      include: ['src/**/*.test.ts'],
+      setupFiles: ['src/test/setup.ts'],
+    },
+  }
+})

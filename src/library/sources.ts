@@ -6,6 +6,8 @@
  * library nobody controls locally cannot go stale in a store we would then have to invalidate.
  */
 
+import { platform } from '@platform'
+
 const KEY = 'prophet-panel:library-sources'
 
 export interface LibrarySource {
@@ -21,7 +23,7 @@ export interface LibrarySource {
 
 function read(): LibrarySource[] {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = platform.kv.get(KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
@@ -71,11 +73,7 @@ class SourceStore {
 
   private write(next: LibrarySource[]): void {
     this.value = next
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next))
-    } catch {
-      // Private browsing and full quotas both throw; the list still applies for this session.
-    }
+    platform.kv.set(KEY, JSON.stringify(next))
     for (const fn of this.listeners) fn()
   }
 

@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:plugin": "tsc -b && vite build --mode plugin",
+    "build:native": "npm run build:plugin && cmake -B native/build -S native -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && cmake --build native/build --parallel",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@juce-framework/webview": "^1.0.0",
     "idb": "^8.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
