@@ -260,6 +260,15 @@ track can play the Prophet through the panel's existing controller pass-through.
 gear icon as the input device. Notes and controllers arrive that way; sysex does not, which is why
 patch transfer uses the direct port.
 
+**Windows** builds a VST3 and a standalone, using Edge WebView2 where macOS uses WebKit. It is
+being brought up rather than shipped: the job runs on every commit but is not yet allowed to fail
+a build, and its artefacts are unsigned. macOS is the platform that has been played through a
+Prophet.
+
+Every build is checked by [pluginval](https://github.com/Tracktion/pluginval) at strictness 10,
+and the Audio Unit additionally by `auval`. Between them they cover both formats — `auval` knows
+nothing about VST3, which is the one most people will load.
+
 ### Setting it up in Ableton Live
 
 1. Make a **MIDI track** and drop **Prophet Panel** on it as an instrument. The track stays silent.

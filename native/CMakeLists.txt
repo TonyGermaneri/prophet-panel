@@ -96,6 +96,7 @@ juce_add_plugin(ProphetPanel
   NEEDS_MIDI_INPUT          TRUE
   NEEDS_MIDI_OUTPUT         FALSE
   NEEDS_WEB_BROWSER         TRUE
+  NEEDS_WEBVIEW2            TRUE   # Windows: the Edge WebView2 loader, fetched as a NuGet package
   EDITOR_WANTS_KEYBOARD_FOCUS TRUE   # the panel plays notes from the computer keyboard
   COPY_PLUGIN_AFTER_BUILD   ${PROPHET_COPY_PLUGIN})
 
@@ -111,6 +112,14 @@ target_compile_definitions(ProphetPanel PUBLIC
   JUCE_VST3_CAN_REPLACE_VST2=0
   JUCE_DISPLAY_SPLASH_SCREEN=0
   JUCE_REPORT_APP_USAGE=0)
+
+if(WIN32)
+  # Statically linked so the plug-in is one file. The alternative ships WebView2Loader.dll beside
+  # it, which survives a zip and does not survive a user dragging only the .vst3 into their folder.
+  target_compile_definitions(ProphetPanel PUBLIC
+    JUCE_USE_WIN_WEBVIEW2=1
+    JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1)
+endif()
 
 target_link_libraries(ProphetPanel PRIVATE
   ProphetPanelWebUI

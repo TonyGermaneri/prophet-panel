@@ -3,8 +3,8 @@ name: Plugin
 # The web app publishes itself from deploy.yml. This builds the plugin target — AU, VST3 and the
 # standalone app — signs and notarises it, and on a version tag publishes a release.
 #
-# Windows is the next platform. It joins as a second build job beside `macos`; the release job
-# already packages whatever the build jobs upload, so adding it needs no changes down there.
+# macOS is the shipping platform and Windows is being brought up beside it. Both feed the release
+# job, which packages whatever the build jobs actually uploaded.
 
 on:
   push:
@@ -170,6 +170,25 @@ jobs:
           killall -9 AudioComponentRegistrar 2>/dev/null || true
           auval -v "$type" "$subtype" "$manufacturer"
 
+      # auval covers the Audio Unit and nothing else, which left the VST3 — the format this is
+      # actually loaded as in Ableton — with no validation at all. pluginval hosts both the way a
+      # DAW would and abuses them: bus layouts, parameter threading, state round-trips, and editor
+      # open/close cycles, which is the part that matters for a UI that builds a WebView each time.
+      - name: pluginval
+        run: |
+          curl -fsSL -o pluginval.zip \
+            https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip
+          unzip -q pluginval.zip
+          A="native/build/ProphetPanel_artefacts/Release"
+          for target in "$A/VST3/Prophet Panel.vst3" \
+                        ~/Library/Audio/Plug-Ins/Components/"Prophet Panel.component"; do
+            echo "::group::pluginval $(basename "$target")"
+            ./pluginval.app/Contents/MacOS/pluginval \
+              --strictness-level 10 --validate-in-process --timeout-ms 600000 \
+              --validate "$target"
+            echo "::endgroup::"
+          done
+
       # Notarisation is a round trip to Apple that takes minutes, so it is reserved for tags and
       # for a deliberate workflow_dispatch — which exists precisely so the path can be proved
       # before a tag depends on it.
@@ -244,13 +263,103 @@ jobs:
           security delete-keychain "$RUNNER_TEMP/prophet-signing.keychain-db" 2>/dev/null || true
           rm -f "$RUNNER_TEMP/certificate.p12" "$RUNNER_TEMP/keychain-search-list"
 
+
   # --------------------------------------------------------------------------------------------
-  # Tags only. Everything that reaches here has built universal and passed auval.
+  # Windows: VST3 and the standalone. After macOS rather than beside it — macOS is the platform
+  # being developed against, so it should report first, and there is no sense spending fifteen
+  # minutes on the MSVC toolchain for a commit whose own tests have not passed.
+  # --------------------------------------------------------------------------------------------
+  windows:
+    name: Windows (x64)
+    needs: [macos]
+    runs-on: windows-latest
+    # Not a blocker yet, and saying so here is more honest than a job everyone learns to scroll
+    # past. Not one line of this has ever been through MSVC, and the WebView backend is a different
+    # implementation on this platform — WebView2 rather than WKWebView — so the first real compile
+    # will find things. None of them should stop a macOS release from going out.
+    #
+    # This is a deliberate, temporary state, and it is the kind that quietly becomes permanent.
+    # Take it off the moment the job goes green: from then on a Windows regression is a failure
+    # worth having, and leaving this here would hide it.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Also a check on the build itself: the Vite config and the zip step handle paths, and this
+      # is the only place a backslash would ever be a problem.
+      - name: Build the web bundle
+        run: npm run build:plugin
+
+      - name: Cache JUCE
+        uses: actions/cache@v4
+        with:
+          path: .deps
+          key: juce-windows-${{ hashFiles('native/CMakeLists.txt') }}
+          restore-keys: juce-windows-
+
+      # What the image actually has, printed before anything depends on it — so the first failure
+      # of this kind explains itself rather than needing a guess.
+      - name: What is installed
+        shell: pwsh
+        run: |
+          cmake --version
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) { & $vswhere -products * -property displayName }
+          else { Write-Host "no vswhere: this image may not carry Visual Studio at all" }
+
+      # No -G: naming a specific "Visual Studio 17 2022" breaks the day the runner image moves on.
+      # CMake's own default is the newest Visual Studio it can find, which is what is wanted.
+      - name: Configure
+        run: >
+          cmake -B native/build -S native -A x64
+          -DPROPHET_COPY_PLUGIN=OFF
+          -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.deps
+
+      # --config, not CMAKE_BUILD_TYPE: the Visual Studio generator is multi-config and ignores it.
+      - name: Build
+        shell: pwsh
+        run: cmake --build native/build --config Release --parallel
+
+      - name: pluginval
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip" -OutFile pluginval.zip
+          Expand-Archive pluginval.zip -DestinationPath pluginval -Force
+          $vst3 = "native/build/ProphetPanel_artefacts/Release/VST3/Prophet Panel.vst3"
+          & ./pluginval/pluginval.exe --strictness-level 10 --validate-in-process `
+              --timeout-ms 600000 --validate "$vst3"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect
+        shell: pwsh
+        run: |
+          $A = "native/build/ProphetPanel_artefacts/Release"
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item -Recurse "$A/VST3/Prophet Panel.vst3" out/
+          Copy-Item "$A/Standalone/Prophet Panel.exe" out/
+          Get-ChildItem -Recurse out | Select-Object -First 20 FullName
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prophet-panel-windows-x64
+          path: out/
+          if-no-files-found: error
+
+  # --------------------------------------------------------------------------------------------
+  # Tags only. Everything that reaches here has built universal and passed auval and pluginval.
   # --------------------------------------------------------------------------------------------
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [macos]
+    needs: [macos, windows]
     runs-on: macos-15
     permissions:
       contents: write
@@ -282,6 +391,18 @@ jobs:
                   "dist/ProphetPanel-${version}-macOS-universal.zip"
             echo "notarized=false" >> "$GITHUB_OUTPUT"
           fi
+
+          # Only if the Windows job actually produced one. It is continue-on-error while the MSVC
+          # build is being brought up, so a tagged release has to be able to go out with the macOS
+          # artefacts alone rather than failing at the last step over a platform already known red.
+          if [ -d artifacts/prophet-panel-windows-x64 ]; then
+            ditto -c -k --keepParent artifacts/prophet-panel-windows-x64 \
+                  "dist/ProphetPanel-${version}-Windows-x64.zip"
+            echo "windows=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::no Windows artefact — releasing macOS only"
+            echo "windows=false" >> "$GITHUB_OUTPUT"
+          fi
           ls -la dist
 
       # Kept as files rather than heredocs: they are prose someone will want to edit, and prose is
@@ -292,6 +413,12 @@ jobs:
             cp native/packaging/release-notes-signed.md notes.md
           else
             cp native/packaging/release-notes-unsigned.md notes.md
+          fi
+          # Said here rather than in the prose, because whether there is a Windows build to say it
+          # about is only known once the artefacts are in hand. Release notes describing a download
+          # that is not in the release are worse than notes that say nothing.
+          if [ "${{ steps.package.outputs.windows }}" = "true" ]; then
+            printf '\nThe Windows build is not signed, so SmartScreen will warn on first run.\n' >> notes.md
           fi
           cat notes.md
 

@@ -132,11 +132,25 @@ juce::WebBrowserComponent::Options ProphetPanelEditor::makeOptions()
                          + ", session: " + juce::JSON::toString (juce::var (processor.getSessionPatch()))
                          + " };";
 
-    return Options {}
+    auto options = Options {}
         .withNativeIntegrationEnabled()
         .withUserScript (bootstrap)
-        .withResourceProvider ([this] (const juce::String& url) { return serve (url); })
+        .withResourceProvider ([this] (const juce::String& url) { return serve (url); });
 
+#if JUCE_WINDOWS
+    // WebView2 keeps a cache, and its default home is beside the running executable — which for a
+    // plug-in is the host's own install directory, and is usually not writable. Left to default,
+    // the WebView fails to create and the panel is a blank rectangle. Pointed at the same folder
+    // the library already lives in, which exists and is ours.
+    const auto webViewCache = processor.storage().directory().getChildFile ("WebView2");
+    webViewCache.createDirectory();
+
+    options = options
+        .withBackend (Options::Backend::webview2)
+        .withWinWebView2Options (Options::WinWebView2 {}.withUserDataFolder (webViewCache));
+#endif
+
+    return options
         .withNativeFunction ("midiOpen", [this] (const juce::Array<juce::var>&, auto complete)
         {
             // The var is held in a named local: it owns the DynamicObject, and reading the pointer
@@ -227,6 +241,15 @@ std::optional<juce::WebBrowserComponent::Resource> ProphetPanelEditor::serve (co
         return std::nullopt;
 
     auto path = url.upToFirstOccurrenceOf ("?", false, false);
+
+    // The resource provider is addressed as `juce://juce.backend/...` on Apple platforms and
+    // `https://juce.backend/...` on Windows, and whether the scheme and host arrive here at all has
+    // varied. Take whatever follows the host when they do, and the string unchanged when they do
+    // not, so the same lookup works either way.
+    const auto afterScheme = path.fromFirstOccurrenceOf ("://", false, false);
+    if (afterScheme != path)
+        path = afterScheme.fromFirstOccurrenceOf ("/", true, false);
+
     path = path.startsWith ("/") ? path.substring (1) : path;
 
     // The factory banks are named "Prophet-10 Factory Group 01.syx", so the WebView asks for them

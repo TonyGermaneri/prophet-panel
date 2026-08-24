@@ -27,6 +27,9 @@ public:
     juce::String readLibrary() const;
     void writeLibrary (const juce::String& json);
 
+    /** Where all of it lives. Somewhere writable, which is what WebView2 needs for its cache. */
+    juce::File directory() const { return libraryFile.getParentDirectory(); }
+
 private:
     std::unique_ptr<juce::PropertiesFile> settings;
     juce::File libraryFile;
