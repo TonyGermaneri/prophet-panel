@@ -315,13 +315,41 @@ jobs:
           if (Test-Path $vswhere) { & $vswhere -products * -property displayName }
           else { Write-Host "no vswhere: this image may not carry Visual Studio at all" }
 
+      # JUCE does `find_package(WebView2 REQUIRED)` when NEEDS_WEBVIEW2 is set, and looks for the
+      # NuGet package under %USERPROFILE%/AppData/Local/PackageManagement/NuGet/Packages — which a
+      # fresh runner does not have, so configure fails before compiling a line. A .nupkg is a zip,
+      # so fetching and unpacking one is less machinery than installing NuGet to do the same thing.
+      # The version is the one JUCE's own error message recommends.
+      - name: Fetch WebView2
+        shell: pwsh
+        run: |
+          $version = "1.0.3485.44"
+          $dir = "$env:GITHUB_WORKSPACE/.webview2".Replace('\', '/')
+          $target = "$dir/Microsoft.Web.WebView2.$version"
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          Invoke-WebRequest -UseBasicParsing `
+            -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$version" `
+            -OutFile "$dir/webview2.zip"
+          Expand-Archive "$dir/webview2.zip" -DestinationPath $target -Force
+
+          # Checked here rather than left to CMake, whose failure for this is a paragraph about
+          # NuGet that says nothing about what was actually on disk.
+          foreach ($needed in "build/native/include/WebView2.h",
+                              "build/native/x64/WebView2LoaderStatic.lib") {
+            if (-not (Test-Path "$target/$needed")) { throw "WebView2 package has no $needed" }
+          }
+          Write-Host "WebView2 $version unpacked into $target"
+          "WEBVIEW2_DIR=$dir" >> $env:GITHUB_ENV
+
       # No -G: naming a specific "Visual Studio 17 2022" breaks the day the runner image moves on.
       # CMake's own default is the newest Visual Studio it can find, which is what is wanted.
       - name: Configure
+        shell: pwsh
         run: >
           cmake -B native/build -S native -A x64
           -DPROPHET_COPY_PLUGIN=OFF
-          -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.deps
+          -DJUCE_WEBVIEW2_PACKAGE_LOCATION="$env:WEBVIEW2_DIR"
+          -DFETCHCONTENT_BASE_DIR="${{ github.workspace }}/.deps"
 
       # --config, not CMAKE_BUILD_TYPE: the Visual Studio generator is multi-config and ignores it.
       - name: Build
