@@ -273,15 +273,6 @@ jobs:
     name: Windows (x64)
     needs: [macos]
     runs-on: windows-latest
-    # Not a blocker yet, and saying so here is more honest than a job everyone learns to scroll
-    # past. Not one line of this has ever been through MSVC, and the WebView backend is a different
-    # implementation on this platform — WebView2 rather than WKWebView — so the first real compile
-    # will find things. None of them should stop a macOS release from going out.
-    #
-    # This is a deliberate, temporary state, and it is the kind that quietly becomes permanent.
-    # Take it off the moment the job goes green: from then on a Windows regression is a failure
-    # worth having, and leaving this here would hide it.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -420,9 +411,9 @@ jobs:
             echo "notarized=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # Only if the Windows job actually produced one. It is continue-on-error while the MSVC
-          # build is being brought up, so a tagged release has to be able to go out with the macOS
-          # artefacts alone rather than failing at the last step over a platform already known red.
+          # Only if the Windows job actually produced one. It is a required job now, so in the
+          # normal case it did — but a release that can still go out when one platform is broken is
+          # worth more than one that fails at the last step over a download it could have omitted.
           if [ -d artifacts/prophet-panel-windows-x64 ]; then
             ditto -c -k --keepParent artifacts/prophet-panel-windows-x64 \
                   "dist/ProphetPanel-${version}-Windows-x64.zip"
