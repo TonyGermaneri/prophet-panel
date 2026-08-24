@@ -238,8 +238,9 @@ without a DAW in the way, and it is the only way to get the panel on a Mac at al
 since Safari has no Web MIDI.
 
 Or take a build from [Releases](https://github.com/TonyGermaneri/prophet-panel/releases) — every
-version tag builds and publishes the AU, the VST3 and the standalone app. They are unsigned, so the
-first launch needs `xattr -dr com.apple.quarantine` on the bundle, or a right-click → Open.
+version tag builds a universal binary, signs it with a Developer ID certificate, has Apple notarise
+it and staples the ticket, so it opens with no warning and no right-click dance. The setup behind
+that is in [`native/packaging/SIGNING.md`](native/packaging/SIGNING.md).
 
 It has no audio engine and never will, and it nonetheless declares itself an **instrument**. That
 is a lie, and it is the only thing that works: hosts deliver MIDI to instruments and not to effects.

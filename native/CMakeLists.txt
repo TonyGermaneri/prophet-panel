@@ -5,6 +5,17 @@
 # WebView from inside the plugin. The web build is untouched by any of it.
 
 cmake_minimum_required(VERSION 3.22)
+
+# Both of these must come before project(), and it is not a style point. CMake fixes the target
+# platform while processing project(); a value set afterwards lands in the cache too late to affect
+# anything, silently. Set after project(), this produced x86_64-only binaries on an Apple silicon
+# machine — which load only under Rosetta, and are invisible to an arm64 host.
+#
+# CACHE without FORCE, so -DCMAKE_OSX_ARCHITECTURES=arm64 on the command line still wins. Ignored
+# on platforms that are not Apple.
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build a universal binary")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Oldest macOS supported")
+
 project(ProphetPanel VERSION 0.1.0 LANGUAGES C CXX)
 
 # Installing into the user's plug-in folders is what you want on a development machine and never
@@ -13,8 +24,6 @@ option(PROPHET_COPY_PLUGIN "Copy the built plug-ins into the user plug-in folder
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary")
 
 # JUCE is fetched rather than vendored, so the repository stays a web project with a build target
 # bolted on rather than a C++ project with a web app inside it. Pinned, because a plugin that
