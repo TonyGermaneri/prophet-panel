@@ -17,6 +17,10 @@ export const platform: Platform = {
   saveFile(name, bytes) {
     void call('saveFile', name, toBase64(bytes))
   },
+  resizeWindow(width, height) {
+    void call('resizeWindow', width, height)
+  },
+  windowSizeRestored: bootstrap().sizeRestored,
   session: {
     get() {
       const injected = bootstrap().session

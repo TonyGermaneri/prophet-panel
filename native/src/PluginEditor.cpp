@@ -5,6 +5,10 @@
 namespace
 {
 
+/** Small enough for a laptop, large enough that the panel is still readable. */
+constexpr int minWidth = 900;
+constexpr int minHeight = 420;
+
 juce::String toBase64 (const juce::uint8* data, size_t size)
 {
     juce::MemoryOutputStream out;
@@ -85,11 +89,23 @@ ProphetPanelEditor::ProphetPanelEditor (ProphetPanelProcessor& p)
       bundle (openBundle()),
       web (makeOptions())
 {
+    // Read before anything else touches it. setResizeLimits ends by constraining the current
+    // bounds, which on a component this new are 0x0 — so it snaps to the minimum, and that arrives
+    // in the processor through resized(). Asking afterwards turns "nothing remembered" into
+    // "remembered as the smallest allowed", and the window opens at 900x420 for ever after.
+    const auto remembered = processor.getEditorSize();
+    const auto hadRememberedSize = processor.hasEditorSize();
+
     addAndMakeVisible (web);
 
     setResizable (true, true);
-    setResizeLimits (900, 560, 4000, 2600);
-    setSize (1400, 900);
+    setResizeLimits (minWidth, minHeight, 4000, 2600);
+
+    // Whatever it was left as, or a default the panel corrects once it has measured the instrument.
+    if (hadRememberedSize)
+        setSize (remembered.x, remembered.y);
+    else
+        setSize (1400, 760);
 
     processor.midi().setSink ([this] (const std::vector<TaggedMidi>& batch) { deliver (batch); });
     processor.midi().setPortsChanged ([this]
@@ -111,6 +127,10 @@ ProphetPanelEditor::~ProphetPanelEditor()
 void ProphetPanelEditor::resized()
 {
     web.setBounds (getLocalBounds());
+
+    // Every frame of a drag, which is two integers and no allocation. The processor holds it so it
+    // outlives this window, and writes it into the session so it outlives the project.
+    processor.setEditorSize (getWidth(), getHeight());
 }
 
 juce::var ProphetPanelEditor::describePorts() const
@@ -130,6 +150,9 @@ juce::WebBrowserComponent::Options ProphetPanelEditor::makeOptions()
     // anything across this bridge.
     const auto bootstrap = "window.__PROPHET__ = { kv: " + processor.storage().keyValueJson()
                          + ", session: " + juce::JSON::toString (juce::var (processor.getSessionPatch()))
+                         // So the panel knows whether it may size the window to the instrument, or
+                         // whether it is looking at a size the user chose and should leave alone.
+                         + ", sizeRestored: " + (processor.hasEditorSize() ? "true" : "false")
                          + " };";
 
     auto options = Options {}
@@ -165,6 +188,27 @@ juce::WebBrowserComponent::Options ProphetPanelEditor::makeOptions()
             }
 
             complete (ports);
+        })
+
+        .withNativeFunction ("resizeWindow", [this] (const juce::Array<juce::var>& args, auto complete)
+        {
+            const auto width = args.size() > 0 ? static_cast<int> (args[0]) : 0;
+            const auto height = args.size() > 1 ? static_cast<int> (args[1]) : 0;
+
+            if (width > 0 && height > 0)
+            {
+                // Asynchronously, because this arrives from inside a WebView callback and resizing
+                // the component that owns it re-enters the browser's own layout.
+                juce::Component::SafePointer<ProphetPanelEditor> safe { this };
+                juce::MessageManager::callAsync ([safe, width, height]
+                {
+                    if (safe != nullptr)
+                        safe->setSize (juce::jlimit (minWidth, 4000, width),
+                                       juce::jlimit (minHeight, 2600, height));
+                });
+            }
+
+            complete (juce::var());
         })
 
         .withNativeFunction ("midiPorts", [this] (const juce::Array<juce::var>&, auto complete)
@@ -243,12 +287,21 @@ std::optional<juce::WebBrowserComponent::Resource> ProphetPanelEditor::serve (co
     auto path = url.upToFirstOccurrenceOf ("?", false, false);
 
     // The resource provider is addressed as `juce://juce.backend/...` on Apple platforms and
-    // `https://juce.backend/...` on Windows, and whether the scheme and host arrive here at all has
-    // varied. Take whatever follows the host when they do, and the string unchanged when they do
-    // not, so the same lookup works either way.
-    const auto afterScheme = path.fromFirstOccurrenceOf ("://", false, false);
-    if (afterScheme != path)
-        path = afterScheme.fromFirstOccurrenceOf ("/", true, false);
+    // `https://juce.backend/...` on Windows, and a bare path arrives on some. Take whatever follows
+    // the host when there is one, and leave a bare path alone.
+    //
+    // Written with indexOf rather than fromFirstOccurrenceOf, which returns an *empty* string when
+    // the substring is absent rather than the original. That is what reduced every bare path to
+    // nothing here, so the fallback below answered every request — scripts included — with
+    // index.html, and the panel was a blank white rectangle that still passed auval and pluginval.
+    const auto scheme = path.indexOf ("://");
+
+    if (scheme >= 0)
+    {
+        const auto host = path.substring (scheme + 3);
+        const auto slash = host.indexOfChar ('/');
+        path = slash >= 0 ? host.substring (slash) : juce::String();
+    }
 
     path = path.startsWith ("/") ? path.substring (1) : path;
 

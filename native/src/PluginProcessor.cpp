@@ -49,6 +49,8 @@ void ProphetPanelProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::XmlElement xml (stateTag);
     xml.setAttribute ("patch", sessionPatch);
+    xml.setAttribute ("editorWidth", editorWidth);
+    xml.setAttribute ("editorHeight", editorHeight);
     copyXmlToBinary (xml, destData);
 }
 
@@ -56,7 +58,11 @@ void ProphetPanelProcessor::setStateInformation (const void* data, int sizeInByt
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (stateTag))
+        {
             sessionPatch = xml->getStringAttribute ("patch");
+            editorWidth = xml->getIntAttribute ("editorWidth", 0);
+            editorHeight = xml->getIntAttribute ("editorHeight", 0);
+        }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

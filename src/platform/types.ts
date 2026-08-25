@@ -76,4 +76,13 @@ export interface Platform {
   saveFile(name: string, bytes: Uint8Array, type?: string): void
   /** Absent in the browser, where the page's own lifetime is the session. */
   readonly session?: SessionStore
+  /**
+   * Ask the shell to resize its window. Absent in the browser, where the page does not own one.
+   *
+   * Position is deliberately not here. A plug-in does not own its window — the host creates it,
+   * places it, and remembers where it was — so there is nothing to offer.
+   */
+  resizeWindow?(width: number, height: number): void
+  /** Whether the shell opened at a remembered size rather than a default. */
+  readonly windowSizeRestored?: boolean
 }

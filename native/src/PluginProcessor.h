@@ -54,12 +54,24 @@ public:
     void setSessionPatch (juce::String base64) { sessionPatch = std::move (base64); }
     const juce::String& getSessionPatch() const { return sessionPatch; }
 
+    /**
+     * The editor's last size. Held here rather than in the editor because the editor is destroyed
+     * every time the window closes, and travels in the session state so a reopened project comes
+     * back the shape it was left. Zero means nothing has been remembered yet.
+     */
+    void setEditorSize (int w, int h) { editorWidth = w; editorHeight = h; }
+    juce::Point<int> getEditorSize() const { return { editorWidth, editorHeight }; }
+    bool hasEditorSize() const { return editorWidth > 0 && editorHeight > 0; }
+
 private:
     MidiHub hub;
     Storage store;
 
     /** The 133-byte payload, base64'd. Small enough to keep in the host's session file. */
     juce::String sessionPatch;
+
+    int editorWidth = 0;
+    int editorHeight = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProphetPanelProcessor)
 };

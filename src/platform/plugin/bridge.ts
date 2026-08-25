@@ -33,11 +33,17 @@ export interface Bootstrap {
   kv: Record<string, string>
   /** The patch the panel held when the host last saved the session, base64'd. */
   session: string
+  /** Whether the editor opened at a size someone chose, rather than at its default. */
+  sizeRestored: boolean
 }
 
 export function bootstrap(): Bootstrap {
   const injected = (window as unknown as { __PROPHET__?: Partial<Bootstrap> }).__PROPHET__
-  return { kv: injected?.kv ?? {}, session: injected?.session ?? '' }
+  return {
+    kv: injected?.kv ?? {},
+    session: injected?.session ?? '',
+    sizeRestored: injected?.sizeRestored === true,
+  }
 }
 
 export function toBase64(bytes: Uint8Array): string {

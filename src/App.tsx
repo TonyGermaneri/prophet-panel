@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { platform } from '@platform'
 
@@ -28,6 +28,7 @@ import { MonitorPanel } from './ui/MonitorPanel'
 import { Toolbar } from './ui/Toolbar'
 import { useBindings, useSettings } from './ui/useBindings'
 import { useComputerKeyboard } from './ui/useComputerKeyboard'
+import { useFitWindow } from './ui/useFitWindow'
 import './App.css'
 
 /** Move to a slot; selectProgram sends the change and then pulls the synth's edit buffer back. */
@@ -43,6 +44,11 @@ export function App() {
   const prefs = useSettings()
   const bind = useBindings()
   const { octave, velocity } = useComputerKeyboard(true)
+  const stageRef = useRef<HTMLElement>(null)
+
+  // The instrument sets the height of the window it is shown in. Which instrument that is depends
+  // on both of these: the keyboard toggle picks the panel, and the model picks the badge on it.
+  useFitWindow(stageRef, `${prefs.hideKeyboard}:${prefs.model}`)
 
   // The tab and the installed app's window both name the instrument that is showing.
   useEffect(() => {
@@ -127,7 +133,7 @@ export function App() {
         onOpenControlPanel={() => setControlPanelOpen(true)}
       />
       <div className="body">
-        <main className="stage">
+        <main className="stage" ref={stageRef}>
           {libraryOpen && prefs.libraryDock === 'header' && (
             <LibraryPanel onClose={() => setLibraryOpen(false)} />
           )}
