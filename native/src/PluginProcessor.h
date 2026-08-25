@@ -13,8 +13,8 @@
  * that must outlive the editor window — the MIDI ports, the settings, the library — and hand the
  * host's MIDI stream to the panel.
  *
- * It declares itself an instrument, which is untrue and unavoidable: hosts deliver MIDI only to
- * instruments, so an effect would sit on a track and never hear a note. It generates silence.
+ * It is an effect so that audio can pass through it untouched — the Prophet's own outputs, arriving
+ * on whatever track the panel has been put on. It adds nothing to them and takes nothing away.
  */
 class ProphetPanelProcessor final : public juce::AudioProcessor
 {

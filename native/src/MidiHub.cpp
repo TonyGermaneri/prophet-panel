@@ -114,7 +114,41 @@ void MidiHub::send (const juce::String& outputId, const juce::uint8* data, size_
         it = openOutputs.emplace (outputId, std::move (output)).first;
     }
 
-    it->second->sendMessageNow (juce::MidiMessage (data, static_cast<int> (size)));
+    // One MidiMessage per message, not one per buffer.
+    //
+    // An NRPN is four control changes — twelve bytes — and handing all twelve to MidiMessage
+    // produces one message that claims to be a control change and is four times too long. JUCE
+    // asserts on exactly that in debug, and in release it goes out to CoreMIDI, which on macOS
+    // now translates everything into Universal MIDI Packets before sending. A malformed message
+    // does not survive that translation intact, which is why program changes and sysex — each a
+    // single well-formed message — worked while no knob ever moved the synth.
+    int position = 0;
+    juce::uint8 runningStatus = 0;
+
+    while (position < static_cast<int> (size))
+    {
+        int used = 0;
+        const juce::MidiMessage message (data + position,
+                                         static_cast<int> (size) - position,
+                                         used,
+                                         runningStatus);
+
+        if (used <= 0)
+            break;
+
+        if (message.getRawDataSize() > 0)
+        {
+            it->second->sendMessageNow (message);
+
+            // Kept so a buffer that does use running status is still parsed correctly. Nothing
+            // here emits it, but this reads whatever it is given rather than only its own output.
+            const auto status = message.getRawData()[0];
+            if (status >= 0x80 && status < 0xf0)
+                runningStatus = status;
+        }
+
+        position += used;
+    }
 }
 
 void MidiHub::pushFromHost (const juce::MidiMessage& message) noexcept

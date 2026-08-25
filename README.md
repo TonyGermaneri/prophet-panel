@@ -242,23 +242,26 @@ version tag builds a universal binary, signs it with a Developer ID certificate,
 it and staples the ticket, so it opens with no warning and no right-click dance. The setup behind
 that is in [`native/packaging/SIGNING.md`](native/packaging/SIGNING.md).
 
-It has no audio engine and never will, and it nonetheless declares itself an **instrument**. That
-is a lie, and it is the only thing that works: hosts deliver MIDI to instruments and not to effects.
-In Ableton Live a VST or AU *effect* on a track receives no MIDI at all, and a plugin that declares
-`IS_MIDI_EFFECT` makes Live refuse to load it outright. So it is an instrument that generates
-silence — macOS reports it as `aumu`. Put it on a MIDI track; the sound comes from the hardware.
+It has no audio engine and never will, and it is built as an **effect** so that the Prophet's own
+audio can pass through it untouched. That is the point: an instrument would own the one instrument
+slot on a track, which is the slot Ableton's **External Instrument** needs in order to bring
+hardware audio back in. As an effect it sits after whatever does that, and the panel and the sound
+share a track. macOS reports it as `aumf` — an effect that also accepts MIDI.
 
-**It opens the Prophet's port itself**, exactly as the browser does, and this is not a preference
-either. Ableton Live never passes sysex to a plugin — [SysEx reaches Max for Live devices and
-nothing else](https://help.ableton.com/hc/en-us/articles/360003148640-SysEx-support) — so a patch
-dump routed through the host would simply never arrive, and the librarian would be decorative.
-Driving the instrument over its own port is also how the established editors for this hardware work.
-Choose the port under the gear icon, the same way you would in the browser.
+**It opens the Prophet's port itself**, exactly as the browser does, and this is not a preference.
+Ableton Live never passes sysex to a plugin — [SysEx reaches Max for Live devices and nothing
+else](https://help.ableton.com/hc/en-us/articles/360003148640-SysEx-support) — so a patch dump
+routed through the host would simply never arrive, and the librarian would be decorative. Driving
+the instrument over its own port is also how the established editors for this hardware work. Choose
+the port under the gear icon, the same way you would in the browser.
 
-The host is not ignored: its MIDI stream appears as one more input port named **DAW / Host**, so a
-track can play the Prophet through the panel's existing controller pass-through. Pick it under the
-gear icon as the input device. Notes and controllers arrive that way; sysex does not, which is why
-patch transfer uses the direct port.
+Audio routing is the host's to decide, which is why there is no input picker here: whatever the
+track feeds the plug-in is what comes out of it. The standalone has no host to ask, so it offers
+the usual audio device and channel choice under its own settings.
+
+Where a host does deliver MIDI to an effect — Logic does, Live does not — its stream appears as one
+more input port named **DAW / Host**, and a track can play the Prophet through the panel's existing
+controller pass-through. Notes and controllers arrive that way; sysex never does.
 
 **Windows** builds a VST3 and a standalone, using Edge WebView2 where macOS uses WebKit, and is
 built and validated on every commit like macOS is. Its artefacts are unsigned, so SmartScreen will
@@ -268,14 +271,22 @@ Every build is checked by [pluginval](https://github.com/Tracktion/pluginval) at
 and the Audio Unit additionally by `auval`. Between them they cover both formats — `auval` knows
 nothing about VST3, which is the one most people will load.
 
+The window is resized by dragging the grip in its bottom-right corner. The host's own resizer is a
+lightweight component underneath a native WebView, which draws over it, so the panel paints its own
+and drags the window through the same bridge everything else uses.
+
 ### Setting it up in Ableton Live
 
-1. Make a **MIDI track** and drop **Prophet Panel** on it as an instrument. The track stays silent.
-2. Open the panel, and under the gear icon set **Synth in** and **Synth out** to the interface the
-   Prophet is on.
-3. To play it from the track, set **Input Device** to **DAW / Host**.
-4. For audio, bring the Prophet's outputs back on a separate audio track, or use Live's
-   **External Instrument** device.
+1. Make a **MIDI track** and put Live's **External Instrument** on it. Point its MIDI output at the
+   Prophet and its audio input at the interface channels the Prophet's outputs arrive on. That is
+   what makes the synth audible and recordable.
+2. Drop **Prophet Panel** on the same track, after it. It passes the audio straight through.
+3. Open the panel, and under the gear icon set **Synth in** and **Synth out** to the interface the
+   Prophet is on — this is the connection the panel actually uses, and it is separate from the
+   routing in step 1.
+
+An audio track whose input is the Prophet works just as well if you do not need to play it from
+Live: put the panel on that.
 
 **Settings and patches are kept natively**, in `~/Library/Application Support/Prophet Panel/`,
 rather than in the WebView. A WebView served from a custom scheme has no origin the browser will

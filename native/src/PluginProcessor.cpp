@@ -9,6 +9,7 @@ constexpr const char* stateTag = "ProphetPanelState";
 
 ProphetPanelProcessor::ProphetPanelProcessor()
     : juce::AudioProcessor (BusesProperties()
+                                .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                                 .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
 {
     // Started with the plugin rather than with the window, so the panel is live the moment it is
@@ -24,7 +25,13 @@ ProphetPanelProcessor::~ProphetPanelProcessor()
 bool ProphetPanelProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto& out = layouts.getMainOutputChannelSet();
-    return out == juce::AudioChannelSet::mono() || out == juce::AudioChannelSet::stereo();
+
+    if (out != juce::AudioChannelSet::mono() && out != juce::AudioChannelSet::stereo())
+        return false;
+
+    // Audio is carried through rather than processed, so anything but a matching pair would leave
+    // channels with nothing to carry.
+    return layouts.getMainInputChannelSet() == out;
 }
 
 void ProphetPanelProcessor::processBlock (juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi)
@@ -36,8 +43,11 @@ void ProphetPanelProcessor::processBlock (juce::AudioBuffer<float>& audio, juce:
     for (const auto metadata : midi)
         hub.pushFromHost (metadata.getMessage());
 
-    // An instrument that is not one. The sound is coming from the hardware, not from here.
-    audio.clear();
+    // Audio passes through untouched, which is the whole reason this is an effect: the Prophet's
+    // outputs arrive on the track and leave on the track, and the panel sits in that path without
+    // displacing whatever brought the audio in. Only channels with no input to carry are cleared.
+    for (auto channel = getTotalNumInputChannels(); channel < getTotalNumOutputChannels(); ++channel)
+        audio.clear (channel, 0, audio.getNumSamples());
 }
 
 juce::AudioProcessorEditor* ProphetPanelProcessor::createEditor()

@@ -1327,3 +1327,32 @@ button.entry {
   color: #cfcbc2;
   overflow-wrap: anywhere;
 }
+
+/*
+ * The window's own resize corner.
+ *
+ * JUCE draws one and marks it always-on-top, which only ranks it among lightweight components —
+ * the native WebView covers the whole editor and draws over it regardless. So the grip is painted
+ * here instead, by the thing doing the covering, and drags the host window through the bridge.
+ *
+ * `touch-action: none` matters: without it the browser claims the gesture as a scroll and the
+ * pointermove events stop arriving partway through a drag.
+ */
+.resize-grip {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  z-index: 40;
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0.35;
+  background:
+    linear-gradient(135deg, transparent 0 44%, #d8d5cc 44% 56%, transparent 56% 100%),
+    linear-gradient(135deg, transparent 0 68%, #d8d5cc 68% 80%, transparent 80% 100%);
+}
+
+.resize-grip:hover {
+  opacity: 0.75;
+}

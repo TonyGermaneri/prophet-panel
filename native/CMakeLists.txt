@@ -73,16 +73,19 @@ add_dependencies(ProphetPanelWebUI ProphetPanelWebUIZip)
 # ---------------------------------------------------------------------------------------------
 # The plugin.
 #
-# An instrument, which is a lie about what it does and the only thing that works.
+# An effect, so that the instrument's audio can pass through it.
 #
-# It has no audio engine and never makes a sound. But hosts only deliver MIDI to instruments: in
-# Ableton Live a VST/AU effect on a track receives no MIDI whatsoever, and IS_MIDI_EFFECT makes Live
-# refuse to load the plugin at all. Declaring an instrument is what gets MIDI through the door.
+# It was briefly an instrument, because hosts deliver MIDI only to instruments. That turned out to
+# cost more than it bought: an instrument owns the one instrument slot on a track, which is the slot
+# Ableton's External Instrument needs in order to bring hardware audio back in. An effect sits after
+# whatever does that and passes the audio along, which is the arrangement people actually want.
 #
-# MIDI input only. The synth is driven through a port the plugin opens for itself, because Live does
-# not pass sysex to plugins under any circumstances — SysEx reaches Max for Live devices and nothing
-# else — so every patch dump would vanish if transfer depended on host routing. This is also how the
-# established editors for these instruments work.
+# Losing host MIDI costs nothing here, because the synth was never driven that way. The plug-in
+# opens the Prophet's port itself — Live does not pass sysex to plug-ins under any circumstances, so
+# patch transfer could never have gone through the host — and MIDI input stays declared for the
+# hosts that do deliver it to effects.
+#
+# IS_MIDI_EFFECT is never set: it makes Ableton refuse to load the plug-in at all.
 # ---------------------------------------------------------------------------------------------
 juce_add_plugin(ProphetPanel
   COMPANY_NAME              "WaveContour"
@@ -91,7 +94,7 @@ juce_add_plugin(ProphetPanel
   PLUGIN_CODE               PrPl
   FORMATS                   AU VST3 Standalone
   PRODUCT_NAME              "Prophet Panel"
-  IS_SYNTH                  TRUE
+  IS_SYNTH                  FALSE
   IS_MIDI_EFFECT            FALSE
   NEEDS_MIDI_INPUT          TRUE
   NEEDS_MIDI_OUTPUT         FALSE

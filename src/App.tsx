@@ -25,6 +25,7 @@ import { store } from './state/store'
 import { BindingsPanel } from './ui/BindingsPanel'
 import { ControlPanelDialog } from './ui/ControlPanelDialog'
 import { MonitorPanel } from './ui/MonitorPanel'
+import { ResizeGrip } from './ui/ResizeGrip'
 import { Toolbar } from './ui/Toolbar'
 import { useBindings, useSettings } from './ui/useBindings'
 import { useComputerKeyboard } from './ui/useComputerKeyboard'
@@ -150,6 +151,7 @@ export function App() {
         )}
       </div>
       {controlPanelOpen && <ControlPanelDialog onClose={() => setControlPanelOpen(false)} />}
+      <ResizeGrip />
     </div>
   )
 }
