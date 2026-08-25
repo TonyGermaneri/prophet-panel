@@ -445,8 +445,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # SemVer puts a hyphen before anything that is not a finished version, so v0.1.1-rc.1 is
+          # a candidate and v0.1.1 is not. Marking it keeps it off "Latest", which is most of the
+          # point of cutting one — otherwise a candidate outranks the release it is a candidate for.
+          prerelease=""
+          case "${GITHUB_REF_NAME}" in *-*) prerelease="--prerelease" ;; esac
+          echo "publishing ${GITHUB_REF_NAME} ${prerelease:-as a full release}"
+
           gh release create "${GITHUB_REF_NAME}" dist/* \
             --repo "${GITHUB_REPOSITORY}" \
             --title "Prophet Panel ${GITHUB_REF_NAME}" \
             --generate-notes \
-            --notes-file notes.md
+            --notes-file notes.md \
+            ${prerelease}

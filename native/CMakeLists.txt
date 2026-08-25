@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build a universal binary")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Oldest macOS supported")
 
-project(ProphetPanel VERSION 0.1.0 LANGUAGES C CXX)
+project(ProphetPanel VERSION 0.1.1 LANGUAGES C CXX)
 
 # Installing into the user's plug-in folders is what you want on a development machine and never
 # what you want on a build runner, which has no one to install for.
