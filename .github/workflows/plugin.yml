@@ -189,6 +189,15 @@ jobs:
             echo "::endgroup::"
           done
 
+      # What the plug-in actually puts on the wire.
+      #
+      # The gate above this one has no opinion about MIDI content, and neither does auval. Every
+      # MIDI fault this project has had lived in exactly that blind spot: correct encoders, correct
+      # unit tests, and the bytes mangled afterwards on the way out. This launches the standalone
+      # pointed at a virtual destination and reads what arrives.
+      - name: MIDI output
+        run: ./native/tools/midi-gate.sh "native/build/ProphetPanel_artefacts/Release"
+
       # Notarisation is a round trip to Apple that takes minutes, so it is reserved for tags and
       # for a deliberate workflow_dispatch — which exists precisely so the path can be proved
       # before a tag depends on it.
