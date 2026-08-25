@@ -6,7 +6,7 @@
  */
 
 import type { Platform } from '../types'
-import { bootstrap, call, fromBase64, toBase64 } from './bridge'
+import { bootstrap, call, fromBase64, listen, toBase64 } from './bridge'
 import { nativeKv } from './kv'
 import { NativeMidiBackend } from './midi'
 
@@ -21,6 +21,20 @@ export const platform: Platform = {
     void call('resizeWindow', width, height)
   },
   windowSizeRestored: bootstrap().sizeRestored,
+  automation: {
+    onChange(fn) {
+      // One event per tick carrying every control that moved, rather than one per control: an
+      // automation sweep changes a value every audio block, and the panel only draws frames.
+      return listen('pp:params', (payload) => {
+        for (const change of (payload as { id: string; value: number }[] | null) ?? []) {
+          fn(change.id, change.value)
+        }
+      })
+    },
+    set(id, value) {
+      void call('paramSet', id, value)
+    },
+  },
   session: {
     get() {
       const injected = bootstrap().session

@@ -100,8 +100,22 @@ export class MidiConnection {
         for (const fn of this.portHandlers) fn(portId, portName, data)
         if (portId === this.input?.id) this.receive(data)
       }),
-      this.backend.onPortsChanged(() => this.notify()),
+      this.backend.onPortsChanged(() => {
+        this.reattachPorts()
+        this.notify()
+      }),
     )
+
+    // A transport that cannot report a failed send synchronously reports it here instead, so a
+    // port that will not open surfaces in the control panel rather than as silence.
+    if (this.backend.onError) {
+      this.detach.push(
+        this.backend.onError((message) => {
+          this.sendError = message
+          this.notify()
+        }),
+      )
+    }
 
     this.channel = settings.current.channel
     this.restoreOrAutoSelect()
@@ -147,6 +161,36 @@ export class MidiConnection {
         ) ??
         others[0])?.id ?? null,
     )
+  }
+
+  /**
+   * Re-find the chosen ports after the list changes.
+   *
+   * A port's id belongs to the connection, not to the device: unplug a USB instrument and plug it
+   * back in and it returns with a new one. Without this the selection keeps pointing at the id it
+   * was given first, which no longer opens anything — and because the *name* is remembered
+   * separately, the panel goes on showing the right device while sending into nothing. Receiving
+   * recovers on its own, since every input is reopened; only the chosen output is stranded, which
+   * is exactly as confusing as it sounds.
+   */
+  private reattachPorts(): void {
+    const rebind = (
+      current: PortInfo | null,
+      available: PortInfo[],
+      apply: (id: string | null) => void,
+    ) => {
+      if (current === null) return
+      if (available.some((p) => p.id === current.id)) return
+
+      // Same name, new id: the device came back. Anything else means it is genuinely gone, and
+      // the selection is left alone rather than silently moved to some other instrument.
+      const returned = available.find((p) => p.name === current.name)
+      if (returned) apply(returned.id)
+    }
+
+    rebind(this.input, this.backend.inputs, (id) => this.setInput(id))
+    rebind(this.output, this.backend.outputs, (id) => this.setOutput(id))
+    rebind(this.controllerInput, this.backend.inputs, (id) => this.setControllerInput(id))
   }
 
   /** Inputs eligible as a performance controller: everything except the synth's own port. */

@@ -18,6 +18,7 @@ import { splitMessages } from './midi/forward'
 import { monitor } from './midi/monitor'
 import { Panel } from './panel/Panel'
 import { registerActions } from './state/actions'
+import { attachAutomation } from './state/automation'
 import { attachSession } from './state/session'
 import { notes } from './state/notes'
 import { settings } from './state/settings'
@@ -84,6 +85,10 @@ export function App() {
     // handed to the host with the rest of the session. A no-op in the browser.
     const detachSession = attachSession()
 
+    // Every control is a host automation lane. Nothing to bind: they exist from the moment the
+    // plugin is instantiated, because that is the only moment a host will accept them.
+    const detachAutomation = attachAutomation()
+
     // Everything from the performance controller lands here. Bindings get first refusal, since an
     // automation message should drive its panel control rather than reaching the synth twice;
     // whatever no binding claims is passed through as performance data.
@@ -119,6 +124,7 @@ export function App() {
     return () => {
       unregister()
       detachSession()
+      detachAutomation()
       unbindPorts()
       monitor.detach()
       notes.allOff()

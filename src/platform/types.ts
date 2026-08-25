@@ -41,6 +41,11 @@ export interface MidiBackend {
   onMessage(fn: PortMessageHandler): () => void
   /** Ports appearing or disappearing, so a device plugged in later is picked up. */
   onPortsChanged(fn: () => void): () => void
+  /**
+   * Failures the transport can only discover after the fact — a port that will not open, most of
+   * all. Absent where sending is synchronous and can simply throw.
+   */
+  onError?(fn: (message: string) => void): () => void
 }
 
 /**
@@ -67,6 +72,20 @@ export interface SessionStore {
   set(payload: Uint8Array): void
 }
 
+/**
+ * The host's automation lanes.
+ *
+ * Every panel control is one, declared by the native side at startup from a manifest the web build
+ * emits — so there is nothing to bind by hand, and a lane exists for each control whether or not
+ * anyone ever automates it.
+ */
+export interface Automation {
+  /** A control the host moved. */
+  onChange(fn: (id: string, value: number) => void): () => void
+  /** A control the panel moved, so the host can record it. */
+  set(id: string, value: number): void
+}
+
 export interface Platform {
   /** Which shell this is. Used to gate things that only make sense in one of them. */
   readonly name: 'web' | 'plugin'
@@ -85,4 +104,6 @@ export interface Platform {
   resizeWindow?(width: number, height: number): void
   /** Whether the shell opened at a remembered size rather than a default. */
   readonly windowSizeRestored?: boolean
+  /** Absent in the browser, which has no host to automate anything. */
+  readonly automation?: Automation
 }

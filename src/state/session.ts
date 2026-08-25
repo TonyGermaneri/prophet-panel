@@ -39,9 +39,13 @@ export function attachSession(): () => void {
 
   // Every parameter, plus name and slot. The store notifies per control rather than globally, so
   // there is no single change event to listen to instead.
+  //
+  // BY_ID is a Map, and Object.keys of a Map is the empty array — which type-checks perfectly and
+  // subscribed this to nothing at all, so a patch was only ever saved when its name or slot
+  // changed. Moving a knob did not count as changing the sound.
   const detach = [
     store.subscribeMeta(push),
-    ...Object.keys(BY_ID).map((id) => store.subscribe(id, push)),
+    ...[...BY_ID.keys()].map((id) => store.subscribe(id, push)),
   ]
 
   return () => {

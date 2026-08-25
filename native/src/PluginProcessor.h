@@ -2,8 +2,30 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <atomic>
+#include <memory>
+#include <vector>
+
 #include "MidiHub.h"
 #include "Storage.h"
+
+/**
+ * One control the host can automate.
+ *
+ * `dirty` is set from whichever thread the host changed the value on — including the audio thread —
+ * and cleared once the panel has been told. Two atomics rather than a queue because the interesting
+ * value is always the latest one: an automation lane sweeping a knob produces a value per block,
+ * and every one of them except the last is already stale by the time the panel could draw it.
+ */
+struct PanelParameter
+{
+    juce::String id;
+    juce::AudioParameterInt* parameter = nullptr;
+    std::atomic<bool> dirty { false };
+
+    /** Set while the panel is the one writing, so its own change does not come straight back. */
+    std::atomic<bool> writingFromPanel { false };
+};
 
 /**
  * The plugin.
@@ -16,7 +38,8 @@
  * It is an effect so that audio can pass through it untouched — the Prophet's own outputs, arriving
  * on whatever track the panel has been put on. It adds nothing to them and takes nothing away.
  */
-class ProphetPanelProcessor final : public juce::AudioProcessor
+class ProphetPanelProcessor final : public juce::AudioProcessor,
+                                    private juce::AudioProcessorParameter::Listener
 {
 public:
     ProphetPanelProcessor();
@@ -50,6 +73,15 @@ public:
     MidiHub& midi() { return hub; }
     Storage& storage() { return store; }
 
+    /** Everything the host can automate, in the order the manifest declared it. */
+    const std::vector<std::unique_ptr<PanelParameter>>& panelParameters() const { return panelParams; }
+
+    /** A change the panel made. Told to the host so it records, without being told back. */
+    void setFromPanel (const juce::String& id, int value);
+
+    /** The embedded web app. Owned here because the manifest is read before any editor exists. */
+    juce::ZipFile* webBundle() const { return bundle.get(); }
+
     /** The panel's current patch, so a reopened session comes back on the same sound. */
     void setSessionPatch (juce::String base64) { sessionPatch = std::move (base64); }
     const juce::String& getSessionPatch() const { return sessionPatch; }
@@ -64,6 +96,14 @@ public:
     bool hasEditorSize() const { return editorWidth > 0 && editorHeight > 0; }
 
 private:
+    void parameterValueChanged (int parameterIndex, float newValue) override;
+    void parameterGestureChanged (int, bool) override {}
+
+    void createPanelParameters();
+
+    std::unique_ptr<juce::ZipFile> bundle;
+    std::vector<std::unique_ptr<PanelParameter>> panelParams;
+
     MidiHub hub;
     Storage store;
 

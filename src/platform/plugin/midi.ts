@@ -86,4 +86,8 @@ export class NativeMidiBackend implements MidiBackend {
     this.portHandlers.add(fn)
     return () => this.portHandlers.delete(fn)
   }
+
+  onError(fn: (message: string) => void): () => void {
+    return listen('pp:midiError', (payload) => fn(String(payload ?? 'MIDI send failed')))
+  }
 }

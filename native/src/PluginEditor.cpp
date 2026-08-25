@@ -1,6 +1,6 @@
 #include "PluginEditor.h"
 
-#include "ProphetPanelWebUI.h"
+#include "WebBundle.h"
 
 namespace
 {
@@ -68,25 +68,9 @@ juce::var portList (const juce::Array<juce::MidiDeviceInfo>& devices)
 
 } // namespace
 
-std::unique_ptr<juce::ZipFile> ProphetPanelEditor::openBundle()
-{
-    if (webui::namedResourceListSize <= 0)
-        return nullptr;
-
-    int size = 0;
-    const auto* data = webui::getNamedResource (webui::namedResourceList[0], size);
-
-    if (data == nullptr || size <= 0)
-        return nullptr;
-
-    return std::make_unique<juce::ZipFile> (
-        new juce::MemoryInputStream (data, static_cast<size_t> (size), false), true);
-}
-
 ProphetPanelEditor::ProphetPanelEditor (ProphetPanelProcessor& p)
     : juce::AudioProcessorEditor (&p),
       processor (p),
-      bundle (openBundle()),
       web (makeOptions())
 {
     // Read before anything else touches it. setResizeLimits ends by constraining the current
@@ -112,16 +96,27 @@ ProphetPanelEditor::ProphetPanelEditor (ProphetPanelProcessor& p)
     {
         web.emitEventIfBrowserIsVisible ("pp:ports", describePorts());
     });
+    processor.midi().setErrorSink ([this] (const juce::String& message)
+    {
+        web.emitEventIfBrowserIsVisible ("pp:midiError", juce::var (message));
+    });
 
     web.goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
+
+    // Slow enough to coalesce an automation sweep into something a panel can draw, fast enough
+    // that a knob does not visibly lag the lane it is following.
+    startTimer (25);
 }
 
 ProphetPanelEditor::~ProphetPanelEditor()
 {
+    stopTimer();
+
     // The hub outlives the editor. Leaving these attached would call into a destroyed WebView on
     // the very next MIDI message.
     processor.midi().setSink (nullptr);
     processor.midi().setPortsChanged (nullptr);
+    processor.midi().setErrorSink (nullptr);
 }
 
 void ProphetPanelEditor::resized()
@@ -211,6 +206,15 @@ juce::WebBrowserComponent::Options ProphetPanelEditor::makeOptions()
             complete (juce::var());
         })
 
+        // The panel moved a control. Told to the host so an automation lane records it.
+        .withNativeFunction ("paramSet", [this] (const juce::Array<juce::var>& args, auto complete)
+        {
+            if (args.size() > 1)
+                processor.setFromPanel (argString (args, 0), static_cast<int> (args[1]));
+
+            complete (juce::var());
+        })
+
         .withNativeFunction ("midiPorts", [this] (const juce::Array<juce::var>&, auto complete)
         {
             complete (describePorts());
@@ -281,6 +285,8 @@ juce::WebBrowserComponent::Options ProphetPanelEditor::makeOptions()
 
 std::optional<juce::WebBrowserComponent::Resource> ProphetPanelEditor::serve (const juce::String& url)
 {
+    auto* bundle = processor.webBundle();
+
     if (bundle == nullptr)
         return std::nullopt;
 
@@ -335,6 +341,32 @@ std::optional<juce::WebBrowserComponent::Resource> ProphetPanelEditor::serve (co
     return juce::WebBrowserComponent::Resource {
         std::vector<std::byte> (bytes, bytes + block.getSize()), mimeFor (path)
     };
+}
+
+/**
+ * Host automation, on its way to the panel.
+ *
+ * Polled rather than pushed: the host can change a parameter on the audio thread, and a sweeping
+ * automation lane changes it every block. Raising a flag there and reading it here turns that into
+ * one message per parameter per tick, carrying only the value that ended up mattering.
+ */
+void ProphetPanelEditor::timerCallback()
+{
+    juce::Array<juce::var> changed;
+
+    for (const auto& held : processor.panelParameters())
+    {
+        if (! held->dirty.exchange (false, std::memory_order_acq_rel))
+            continue;
+
+        auto* entry = new juce::DynamicObject();
+        entry->setProperty ("id", held->id);
+        entry->setProperty ("value", held->parameter->get());
+        changed.add (juce::var (entry));
+    }
+
+    if (! changed.isEmpty())
+        web.emitEventIfBrowserIsVisible ("pp:params", juce::var (changed));
 }
 
 void ProphetPanelEditor::deliver (const std::vector<TaggedMidi>& batch)

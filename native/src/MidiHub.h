@@ -101,6 +101,8 @@ public:
     /** Called on the message thread with everything that arrived since the last tick. */
     using Sink = std::function<void (const std::vector<TaggedMidi>&)>;
     using PortsChangedFn = std::function<void()>;
+    /** Something the caller could not have known was failing. */
+    using ErrorFn = std::function<void (const juce::String&)>;
 
     static const juce::String hostPortId;
     static const juce::String hostPortName;
@@ -121,6 +123,7 @@ public:
 
     void setSink (Sink s) { sink = std::move (s); }
     void setPortsChanged (PortsChangedFn f) { portsChangedFn = std::move (f); }
+    void setErrorSink (ErrorFn f) { errorFn = std::move (f); }
 
 private:
     void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage&) override;
@@ -145,6 +148,7 @@ private:
 
     Sink sink;
     PortsChangedFn portsChangedFn;
+    ErrorFn errorFn;
 
     juce::MidiDeviceListConnection deviceListConnection;
 

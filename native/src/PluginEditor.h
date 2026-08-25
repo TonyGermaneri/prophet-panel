@@ -19,7 +19,8 @@
  * that matters. Every piece of state worth keeping lives in the processor or on disk, which is
  * what lets the panel come back exactly as it was.
  */
-class ProphetPanelEditor final : public juce::AudioProcessorEditor
+class ProphetPanelEditor final : public juce::AudioProcessorEditor,
+                                 private juce::Timer
 {
 public:
     explicit ProphetPanelEditor (ProphetPanelProcessor&);
@@ -29,17 +30,13 @@ public:
 
 private:
     juce::WebBrowserComponent::Options makeOptions();
-    static std::unique_ptr<juce::ZipFile> openBundle();
+    void timerCallback() override;
 
     std::optional<juce::WebBrowserComponent::Resource> serve (const juce::String& url);
     void deliver (const std::vector<TaggedMidi>& batch);
     juce::var describePorts() const;
 
     ProphetPanelProcessor& processor;
-
-    // Declared before `web`: the resource provider closure reads it on the first page load.
-    std::unique_ptr<juce::ZipFile> bundle;
-
     juce::WebBrowserComponent web;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProphetPanelEditor)

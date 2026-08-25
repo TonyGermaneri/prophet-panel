@@ -108,8 +108,18 @@ void MidiHub::send (const juce::String& outputId, const juce::uint8* data, size_
     if (it == openOutputs.end())
     {
         auto output = juce::MidiOutput::openDevice (outputId);
+
         if (output == nullptr)
+        {
+            // Said out loud rather than returned into the void. A port that will not open looks
+            // exactly like one that works — the panel reports every message as sent, because from
+            // its side it was — and that silence is worth hours to anyone trying to find it.
+            if (errorFn != nullptr)
+                errorFn ("Could not open the MIDI output. If the instrument was unplugged and "
+                         "reconnected, choose it again under Synth out.");
+
             return;
+        }
 
         it = openOutputs.emplace (outputId, std::move (output)).first;
     }
@@ -128,10 +138,18 @@ void MidiHub::send (const juce::String& outputId, const juce::uint8* data, size_
     while (position < static_cast<int> (size))
     {
         int used = 0;
+
+        // The last argument is the one that matters, and it defaults to the wrong thing.
+        // sysexHasEmbeddedLength tells this constructor to read a variable-length size field
+        // straight after the F0 — true of sysex stored in a MIDI *file*, never true of sysex on a
+        // wire. Left at its default it ate the byte after F0, so a device inquiry went out as
+        // F0 7F 06 01 F7 with the 7E missing, and every patch dump lost its manufacturer ID.
         const juce::MidiMessage message (data + position,
                                          static_cast<int> (size) - position,
                                          used,
-                                         runningStatus);
+                                         runningStatus,
+                                         0.0,
+                                         false);
 
         if (used <= 0)
             break;

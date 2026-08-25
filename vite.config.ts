@@ -3,6 +3,9 @@ import { copyFileSync, existsSync, readdirSync, readFileSync, statSync, writeFil
 import { join, posix, relative, resolve } from 'node:path'
 
 import react from '@vitejs/plugin-react'
+
+import { PARAMETERS } from './src/domain/parameters'
+import { SECTIONS } from './src/panel/layout'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { defineConfig } from 'vitest/config'
 
@@ -104,6 +107,46 @@ function noCrossOrigin(): Plugin {
   }
 }
 
+/**
+ * Writes the panel's parameters out beside the bundle, for the plug-in to read at startup.
+ *
+ * A host addresses automation lanes by index and needs them declared before the editor exists, so
+ * the native side must have this list before there is anywhere to ask for it. Emitting it here
+ * keeps `parameters.ts` the only place a parameter is defined. The order is the order of
+ * PARAMETERS, and it must not be shuffled: index 42 meaning something new silently rewires that
+ * lane in every session already saved against it.
+ */
+function parameterManifest(): Plugin {
+  // Several parameters share a name — there is a Frequency on each oscillator — so the section is
+  // folded in. A host shows a flat list, and two lanes both called "Frequency" are a coin toss.
+  const titles = new Map(SECTIONS.map((section) => [section.id, section.title]))
+  const titleCase = (text: string) =>
+    text.toLowerCase().replace(/(^|[\s-])([a-z])/g, (_, gap: string, letter: string) => gap + letter.toUpperCase())
+
+  const entries = [
+    ...PARAMETERS.map(({ id, name, section, min, max }) => ({
+      id,
+      label: `${titleCase(titles.get(section) ?? section)} ${name}`,
+      min,
+      max,
+      kind: 'value' as const,
+    })),
+
+    // Two the synthesizer knows nothing about. They step the library the way the buttons beside the
+    // patch number do, so a set can be walked from an automation lane.
+    { id: 'patchNext', label: 'Patch +', min: 0, max: 1, kind: 'trigger' as const },
+    { id: 'patchPrev', label: 'Patch \u2212', min: 0, max: 1, kind: 'trigger' as const },
+  ]
+
+  return {
+    name: 'parameter-manifest',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'parameters.json', source: JSON.stringify(entries, null, 2) })
+    },
+  }
+}
+
 export default defineConfig(({ command, isPreview, mode }) => {
   /**
    * The plugin target is the same app in different furniture. It differs in four ways, all of
@@ -120,7 +163,9 @@ export default defineConfig(({ command, isPreview, mode }) => {
 
   return {
     base: isPlugin ? './' : webBase,
-    plugins: isPlugin ? [react(), noCrossOrigin()] : [react(), spaFallback(), pwa()],
+    plugins: isPlugin
+      ? [react(), noCrossOrigin(), parameterManifest()]
+      : [react(), spaFallback(), pwa()],
     resolve: {
       alias: {
         '@platform': resolve(

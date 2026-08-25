@@ -105,6 +105,7 @@ juce_add_plugin(ProphetPanel
 
 target_sources(ProphetPanel PRIVATE
   src/MidiHub.cpp
+  src/WebBundle.cpp
   src/Storage.cpp
   src/PluginProcessor.cpp
   src/PluginEditor.cpp)
